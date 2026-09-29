@@ -51,6 +51,31 @@ def split_frontmatter(note: str) -> str | None:
     return None
 
 
+def is_skill_note(note: str) -> bool:
+    """Spec J: a note is a skill iff its LAST top-level fence starts with
+    frontmatter (a `---` line)."""
+    lines = note.split("\n")
+    blocks: list[tuple[int, int]] = []
+    i = 0
+    while i < len(lines):
+        if _FENCE.fullmatch(lines[i].strip()):
+            fence = lines[i].strip()
+            j = i + 1
+            while j < len(lines) and lines[j].strip() != fence:
+                j += 1
+            if j < len(lines):
+                blocks.append((i, j))
+                i = j + 1
+            else:
+                i += 1
+        else:
+            i += 1
+    if not blocks:
+        return False
+    s, e = blocks[-1]
+    return "\n".join(lines[s + 1 : e]).lstrip().startswith("---")
+
+
 class ObsidianAdapter(FilesystemAdapter):
     def __init__(self, root, id: str = "obsidian", tags: list[str] | None = None):
         super().__init__(root, id=id, layout="flat")
@@ -64,6 +89,15 @@ class ObsidianAdapter(FilesystemAdapter):
             tags = "".join(f"  - {t}\n" for t in self.tags)
             fm = f"---\ntags:\n{tags}---"
         return f"{fm}\n{fence}\n{text}{fence}\n"
+
+    def _list_flat(self) -> dict[str, str]:
+        out = super()._list_flat()
+        # spec J: only notes whose last top-level fence starts with frontmatter
+        return {
+            n: stem
+            for n, stem in out.items()
+            if is_skill_note(self._file(stem).read_text(encoding="utf-8"))
+        }
 
     def _read_flat(self, target_id: str):
         note = self._file(target_id).read_text(encoding="utf-8")

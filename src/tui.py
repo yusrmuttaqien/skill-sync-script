@@ -369,12 +369,16 @@ def _action_create(store) -> None:
     prompt_edit_until_clean(store, name)
 
 
-def _action_scan(store) -> None:
+def _action_scan(store, adapters) -> None:
     for name in store.list_skills():
         issues = store.post_edit(name)
         if issues:
             console.print(f"[yellow]{name}[/yellow]")
             _print_issues(issues)
+    for tid, adapter in adapters.items():
+        unimp = adapter.list_unimportable()
+        if unimp:
+            console.print(f"[dim]{tid}: unimportable (no SKILL.md): {', '.join(unimp)}[/dim]")
 
 
 # --- main loop -----------------------------------------------------------------
@@ -424,6 +428,6 @@ def run(config_path: str | None = None) -> None:
             elif choice == "c":
                 _action_create(store)
             elif choice == "s":
-                _action_scan(store)
+                _action_scan(store, adapters)
         except KeyboardInterrupt:
             console.print("[yellow]Interrupted.[/yellow]")

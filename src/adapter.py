@@ -31,6 +31,10 @@ class Adapter:
         """Recreate under a new id (rename); return new id, or None if unsupported."""
         return None
 
+    def list_unimportable(self) -> list[str]:
+        """Entries that exist but cannot be imported (spec I)."""
+        return []
+
     def read_skill(self, target_id: str) -> tuple[bytes, dict[str, bytes], dict[str, int]]:
         """(SKILL.md bytes, companions relpath→bytes, relpath→mode) — symlinks resolved."""
         raise NotImplementedError

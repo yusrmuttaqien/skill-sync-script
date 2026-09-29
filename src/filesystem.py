@@ -88,6 +88,16 @@ class FilesystemAdapter(Adapter):
                 out[normalize_name(p.stem)] = p.stem
         return out
 
+    def list_unimportable(self) -> list[str]:
+        """dir layout: folders without SKILL.md (spec I) — unimportable candidates."""
+        if self.layout != "dir" or not self.root.is_dir():
+            return []
+        return sorted(
+            d.name
+            for d in self.root.iterdir()
+            if d.is_dir() and not d.name.startswith(".") and not (d / "SKILL.md").is_file()
+        )
+
     def _read_flat(self, target_id: str) -> tuple[bytes, dict[str, bytes], dict[str, int]]:
         return self._file(target_id).read_bytes(), {}, {}
 
