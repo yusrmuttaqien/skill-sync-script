@@ -32,6 +32,12 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 - Verify against real targets when possible (OWUI at localhost:30001,
   pi at `~/.pi/agent/skills/`)
 
+## Environment & Dependencies
+
+- Venv: `venv/` (uv-managed, Python 3.12) — `venv/bin/python`, `uv pip install …`
+- `requirements.txt` is the dependency record: **regenerate it in the same
+  commit that changes dependencies** (`uv pip freeze --python venv/bin/python > requirements.txt`)
+
 ## Commit Conventions
 
 - **Commit at worthy checkpoints and at every phase boundary** — each

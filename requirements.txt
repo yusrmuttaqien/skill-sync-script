@@ -1,0 +1,2 @@
+# skillsync dependencies
+# Regenerate when dependencies change: uv pip freeze --python venv/bin/python > requirements.txt
