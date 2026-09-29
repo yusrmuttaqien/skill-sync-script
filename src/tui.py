@@ -825,7 +825,7 @@ def run(config_path: str | None = None) -> None:
             ("b", "Batch", "import/export a set at once"),
             ("r", "Rename", "store skill"),
             ("p", "Repoint", "fix stale absolute store paths"),
-            ("d", "Delete", "from store"),
+            ("d", "Delete", "from store and/or targets"),
             ("c", "Create", "new skill (template + $EDITOR)"),
             ("s", "Scan", "run checks on store"),
             ("v", "View", "store browser"),
