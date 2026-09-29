@@ -45,7 +45,7 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
    Obsidian); import: abs → rel (the streamlining). Longest-first,
    token-boundary, skip URL/qualified contexts. Companions stay single-copy in
    the store; pi/Obsidian refs point at it (stop copying companions there). (`4433687`)
-**E. OWUI flatten** — small companions in `<!-- file:<relpath> -->…<!-- /file -->`
+**E. ✅ OWUI flatten** — small companions in `<!-- file:<relpath> -->…<!-- /file -->`
    markers (base64 for binary; large → link + guide text via `hostname` /
    `open_terminal` templates), markers at end of md, re-parsed on import
    (lossless), markers structural-not-text (stripped before compare; missing
@@ -53,10 +53,10 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
 **F. ✅ Adopt write-back** — adopt = import + write normalized version back to the
    target (store becomes single physical copy). Currently flag-only. (`cd7bf1e`)
 
-**G. Obsidian wrapper pass-through** — preserve existing wrapper frontmatter
+**G. ✅ Obsidian wrapper pass-through** — preserve existing wrapper frontmatter
    (`status: fix`, extra fields) on export; only replace fenced content.
    Currently regenerated from config tags (loses `status`). (`543b169`)
-**H. OWUI put semantics** — id new/changed (rename) → recreate (POST /create +
+**H. ✅ OWUI put semantics** — id new/changed (rename) → recreate (POST /create +
    DELETE /old); duplicate normalized names in target → flag both, disambiguate
    by id, user picks (list_skills keeps last today); `is_active` in scan.
    (`fe558c0`)
