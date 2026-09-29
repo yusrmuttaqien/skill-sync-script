@@ -42,7 +42,10 @@ def import_skill(store: Store, adapter: Adapter, man: dict, name: str, strict: b
     if strict and any(i.severity == "error" for i in issues):
         return issues  # do not import a broken skill
     store.save(name, bundle)
-    M.set_target(man, name, adapter.id, tid)
+    M.set_target(
+        man, name, adapter.id, tid,
+        blobs={"SKILL.md": text.encode("utf-8"), **{k: v for k, v in bundle.companions.items()}},
+    )
     return issues
 
 
@@ -56,6 +59,10 @@ def export_skill(store: Store, adapter: Adapter, man: dict, name: str) -> list:
     if tid is None:
         # not on target yet → find by name, else create
         tid = adapter.list_skills().get(name) or adapter.create_skill(name)
-    adapter.write_skill(tid, canonical_text(bundle), bundle.companions)
-    M.set_target(man, name, adapter.id, tid)
+    text = canonical_text(bundle)
+    adapter.write_skill(tid, text, bundle.companions)
+    M.set_target(
+        man, name, adapter.id, tid,
+        blobs={"SKILL.md": text.encode("utf-8"), **bundle.companions},
+    )
     return issues

@@ -168,12 +168,16 @@ def prompt_edit_until_clean(store: Store, name: str) -> None:
 
 # --- status page -------------------------------------------------------------
 
-def _state_mark(in_target: bool, in_manifest: bool) -> str:
-    if in_target and in_manifest:
-        return "[green]synced[/green]"
-    if in_target:
-        return "[cyan]target[/cyan]"
-    return "[dim]\u2014[/dim]"
+def _state_mark(state: str) -> str:
+    return {
+        "in-sync": "[green]\u2713[/green]",
+        "changed": "[yellow]~[/yellow]",
+        "unmanaged": "[cyan]+[/cyan]",
+        "to-add": "[cyan]+[/cyan]",
+        "offline": "[red]![/red]",
+        "error": "[red]![/red]",
+        "absent": "[dim]\u2014[/dim]",
+    }.get(state, "[dim]\u2014[/dim]")
 
 
 def render_status_table(store: Store, adapters: dict, man: dict) -> None:
@@ -186,7 +190,7 @@ def render_status_table(store: Store, adapters: dict, man: dict) -> None:
     for r in rows:
         cells = [r.name, "[green]\u2713[/green]" if r.in_store else "[dim]\u2014[/dim]"]
         for t in r.targets:
-            cells.append(_state_mark(t.in_target, t.in_manifest))
+            cells.append(_state_mark(t.state))
         table.add_row(*cells)
     console.print(table)
 

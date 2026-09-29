@@ -71,6 +71,8 @@ class OpenWebUIAdapter(Adapter):
     # --- write / delete / create -------------------------------------------
 
     def write_skill(self, target_id: str, text: str, companions: dict[str, bytes]) -> None:
+        if isinstance(text, bytes):
+            text = text.decode("utf-8")
         fm, _ = parse_skill(text)
         name = fm.get("name") or target_id
         body = {

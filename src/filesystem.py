@@ -113,6 +113,8 @@ class FilesystemAdapter(Adapter):
         return self._read_flat(target_id) if self.layout == "flat" else self._read_dir(target_id)
 
     def write_skill(self, target_id: str, text: str, companions: dict[str, bytes]) -> None:
+        if isinstance(text, bytes):
+            text = text.decode("utf-8")
         (self._write_flat if self.layout == "flat" else self._write_dir)(target_id, text, companions)
 
     def delete_skill(self, target_id: str) -> None:

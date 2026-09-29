@@ -33,7 +33,7 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 Checked `skills-sync-project.md` against the implementation. Suggested build order:
 A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/polish).
 
-**A. Manifest last-synced hash + blob** — per skill × target: hash+blob of SKILL.md
+**A. ✅ Manifest last-synced hash + blob** — per skill × target: hash+blob of SKILL.md
    and each companion (= merge base). Powers drift detection, status states,
    repoint detection. (manifest.py, sync.py, status.py)
 **B. Diff preview before apply** — the v1 guard (no in-TUI undo). Import/export/
@@ -63,8 +63,8 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
    candidates; unmanaged originals indexed with `+`.
 **J. Obsidian validity rule** — skill iff last top-level fence starts with
    frontmatter (today: any `*.md`).
-**K. Status states** — `+ to-add / ~ changed / ~ paths-stale / ~ orphan /
-   ! offline / ! error` (needs A).
+**K. ✅ (partial) Status states** — `+ to-add / ~ changed / ! offline / ! error` live;
+   `~ paths-stale` needs D, `~ orphan` needs the scan wiring (R).
 
 **L. Repoint action** — fix stale absolute paths (auto-suggested by status; needs D).
 **M. Batch in TUI** — batch import/export of a selected set; managed skills
@@ -79,6 +79,17 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
    to a scan action (target_names context unused).
 
 ## Log
+
+## [2026-09-29] — Session 8: drift detection (backlog A + K)
+**Task**: Audit vs draft; build A (manifest blobs) + K (status states)
+**Changes**:
+- `manifest.py` — targets store `blobs` (SKILL.md text + base64 companions); `set_target(..., blobs=)`, `get_blobs`, `blob_hash`
+- `sync.py` — import/export record synced blobs (merge base)
+- `status.py` — states `in-sync / changed / unmanaged / to-add / offline / error / absent`; drift = normalize-then-exact-compare vs blobs
+- `tui.py` — cells render ✓ / ~ / + / ! / —
+- `filesystem.py`, `openwebui.py` — `write_skill` accepts bytes (read/write symmetry)
+- `CHANGELOG.md` — `Backlog — gaps vs draft v2` (A–R) is the work queue
+**Lessons**: pre-A manifest entries have no blobs → show `+` until re-synced; ref-scan flags prose tokens that look like paths (conservative, known noise)
 
 ## [2026-09-29] — Session 1
 **Task**: Bootstrap the build system
