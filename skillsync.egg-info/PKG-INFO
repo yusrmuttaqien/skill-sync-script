@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: skillsync
+Version: 0.1.0
+Summary: Centralized skill management across pi, OpenWebUI, and Obsidian through a local store
+Requires-Python: >=3.12
+Requires-Dist: rich

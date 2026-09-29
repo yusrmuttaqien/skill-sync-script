@@ -1,0 +1,2 @@
+[console_scripts]
+skillsync = skillsync.__main__:main
