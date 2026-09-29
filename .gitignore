@@ -1,2 +1,2 @@
 skills-sync-project.md.old
-venv
+venv*.egg-info/
