@@ -39,11 +39,16 @@ def make_adapter(target_name: str, cfg: dict) -> Adapter:
     """Build the adapter for a named target from config."""
     t = cfg["targets"][target_name]
     ttype = t.get("type", target_name)
-    if ttype in ("pi", "obsidian", "filesystem"):
+    if ttype in ("pi", "filesystem"):
         from .filesystem import FilesystemAdapter
 
-        layout = "flat" if ttype == "obsidian" else "dir"
-        return FilesystemAdapter(Path(t["skills_dir"]), id=target_name, layout=layout)
+        return FilesystemAdapter(Path(t["skills_dir"]), id=target_name)
+    if ttype == "obsidian":
+        from .obsidian import ObsidianAdapter
+
+        return ObsidianAdapter(
+            Path(t["skills_dir"]), id=target_name, tags=t.get("default_tags")
+        )
     if ttype == "openwebui":
         from .openwebui import OpenWebUIAdapter
 
