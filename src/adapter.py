@@ -52,5 +52,10 @@ def make_adapter(target_name: str, cfg: dict) -> Adapter:
     if ttype == "openwebui":
         from .openwebui import OpenWebUIAdapter
 
-        return OpenWebUIAdapter(t.get("url", ""), t.get("api_key", ""))
+        return OpenWebUIAdapter(
+            t.get("url", ""),
+            t.get("api_key", ""),
+            inline_max_bytes=t.get("inline_max_bytes", 65536),
+            store_path=Path(cfg["store"]["path"]).expanduser(),
+        )
     raise ValueError(f"unknown target type: {ttype}")
