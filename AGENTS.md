@@ -53,6 +53,15 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 - No commit for trivial in-progress state; a checkpoint is worthy when the
   last logged step is complete and verified
 
+## Modules (src/)
+
+`config` load/generate · `name` kebab-case · `normalize` idempotent text pass ·
+`canonical` Bundle + SKILL.md parse/serialize · `checks` the suite + triggers ·
+`store` local hub · `filesystem` dir adapter (pi/obsidian) · `openwebui` HTTP
+adapter · `adapter` factory · `manifest` sync.json · `status` the join ·
+`sync` import/export · `operations` adopt/rename/delete/batch · `tui` rich UI ·
+`__main__` entry
+
 ## Verification
 
 - `source venv/bin/activate && python skillsync.py --help` (entry works)

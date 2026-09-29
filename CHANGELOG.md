@@ -19,12 +19,12 @@ Spec: `skills-sync-project.md` (behavior source of truth). Workflow: `AGENTS.md`
 |---|---|---|---|
 | 0 | Scaffold | ✅ | package `skillsync`, entry point, config (load/generate/onboarding) |
 | 1 | Core domain | ✅ | canonical form, name normalization, normalization pass, Checks suite |
-| 2 | Store | ⬜ | layout, integrity, browser (view/edit/create + post-edit checks) |
-| 3 | Adapters | ⬜ | pi, obsidian, openwebui — scan/get/put/remove per spec |
-| 4 | Manifest + status | ⬜ | last-synced blobs, status table, drift detection, target-down states |
-| 5 | Import / Export | ⬜ | mirror rule, diff preview, link rewrite, OWUI flatten/markers |
-| 6 | Adopt / Repoint / Delete / Batch | ⬜ | ownership transfer, repoint, both deletes, batch apply |
-| 7 | TUI assembly | ⬜ | rich-based paged screens, modular package, help text (Import vs Adopt) |
+| 2 | Store | ✅ | layout, integrity, template create, post-edit checks, companion modes |
+| 3 | Adapters | ✅ | filesystem (pi/obsidian) + openwebui HTTP — list/read/write/delete/create |
+| 4 | Manifest + status | ✅ | sync.json source of truth, status join, target-down resilience |
+| 5 | Import / Export | ✅ | check-gated pull/push; **deferred**: diff preview, link rewrite, OWUI inline flatten |
+| 6 | Adopt / Rename / Delete / Batch | ✅ | adopt, rename (+cross-skill mentions), delete (synced-target report), batch; **deferred**: repoint |
+| 7 | TUI assembly | ✅ | rich status view, key-driven actions, $EDITOR + post-edit prompt loop; **deferred**: paged screens, onboarding prompts |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done
 
@@ -88,3 +88,24 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 - `_` is a `\w` char — token split needs `[^\w]+|_+` to kebab-ize `Cool_Skill`
 - Normalization guarantees exactly one trailing \n (test expectations must include it)
 - Checks take a `Context` dataclass — triggers select which checks run; issues are data, prompts are the TUI's job (Phase 7)
+
+## [2026-09-29] — Session 6
+**Task**: P2–P7 — Store, Adapters, Manifest+Status, Import/Export, Operations, TUI
+**Changes**:
+- `src/store.py` — store layout, companion enumeration (ignore patterns, symlink flatten, modes), template create, post-edit checks, `context_for`
+- `src/filesystem.py` — generic directory adapter (pi/obsidian); `src/openwebui.py` — HTTP adapter (official /v1/skills, b64 files, 409→id create, status)
+- `src/adapter.py` — type-based `make_adapter` from config
+- `src/manifest.py` — sync.json load/save + accessors (single source of truth)
+- `src/status.py` — store × targets × manifest join; per-target failure isolation
+- `src/sync.py` — import (normalize + import checks, strict gate) / export (canonical write, auto-create)
+- `src/operations.py` — adopt, rename (dir + frontmatter + cross-skill mentions), delete (reports synced targets), batch
+- `src/tui.py` — rich status table, key-driven actions (i/e/a/r/d/c/s/q), $EDITOR launch + edit-until-clean prompt loop
+- `src/__main__.py` — default run = TUI
+- `src/checks.py` — fixes: `None` description, `store_integrity` compares frontmatter name
+- `src/normalize.py` — `./` strip only when a path char follows (quoted `./` survives)
+**Lessons**:
+- `str(None)` = `"None"` (truthy) — empty YAML values need explicit `None` handling
+- Integrity checks must compare against frontmatter, not the bundle name (which may have been set to the dir name)
+- Adapter reads return bytes; sync layer tolerates str (test fakes + leniency)
+- One unreachable target must not crash status — isolate `list_skills()` failures per target
+- Template example refs must not look like real paths (`scripts/<file>.sh`) or the ref scan flags the template itself
