@@ -18,7 +18,7 @@ Spec: `skills-sync-project.md` (behavior source of truth). Workflow: `AGENTS.md`
 | # | Phase | Status | Notes |
 |---|---|---|---|
 | 0 | Scaffold | ✅ | package `skillsync`, entry point, config (load/generate/onboarding) |
-| 1 | Core domain | ⬜ | canonical form, name normalization, normalization pass, Checks suite |
+| 1 | Core domain | ✅ | canonical form, name normalization, normalization pass, Checks suite |
 | 2 | Store | ⬜ | layout, integrity, browser (view/edit/create + post-edit checks) |
 | 3 | Adapters | ⬜ | pi, obsidian, openwebui — scan/get/put/remove per spec |
 | 4 | Manifest + status | ⬜ | last-synced blobs, status table, drift detection, target-down states |
@@ -75,3 +75,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 - `pip uninstall` needs `-y` in non-tty shells (prompts → EOFError)
 - `python -m src` works off the PEP 420 namespace package — no `src/__init__.py` needed
 - Version now reports `0.0.0+local` (importlib.metadata fallback, no installed dist) — acceptable
+
+## [2026-09-29] — Session 5
+**Task**: P1 — core domain (canonical form, name, normalization, Checks suite)
+**Changes**:
+- `src/name.py` — kebab-case normalization (Unicode letters kept), legal charset check
+- `src/normalize.py` — idempotent pass: LF, BOM strip, single trailing \n, `./`-strip at path-token starts
+- `src/canonical.py` — Bundle (frontmatter+body+companions), parse/serialize SKILL.md (PyYAML), name/description-first key order
+- `src/checks.py` — canonical suite: 7 checks registered with triggers (post_edit/import/scan/rename_delete), `run_checks(trigger, ctx)`
+- `requirements.txt` — + PyYAML
+**Lessons**:
+- `_` is a `\w` char — token split needs `[^\w]+|_+` to kebab-ize `Cool_Skill`
+- Normalization guarantees exactly one trailing \n (test expectations must include it)
+- Checks take a `Context` dataclass — triggers select which checks run; issues are data, prompts are the TUI's job (Phase 7)
