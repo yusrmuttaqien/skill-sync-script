@@ -15,19 +15,51 @@ from pathlib import Path
 from rich.console import Console, Group
 from rich.live import Live
 from rich.panel import Panel
+from rich.prompt import Confirm
 from rich.table import Table
 from rich.text import Text
 
 from . import manifest as M
 from .adapter import make_adapter
+from .canonical import canonical_text
 from .config import load_config
 from .name import normalize_name
+from .normalize import normalize_text
 from .operations import adopt, delete_from_store, rename
 from .store import Store
 from .status import compute_status
 from .sync import export_skill, import_skill
 
 console = Console()
+
+MAX_DIFF_LINES = 40
+
+
+def _diff_preview(old: str, new: str, old_label: str, new_label: str) -> str:
+    import difflib
+
+    lines = list(
+        difflib.unified_diff(old.splitlines(), new.splitlines(), old_label, new_label, lineterm="")
+    )
+    if len(lines) > MAX_DIFF_LINES:
+        lines = lines[:MAX_DIFF_LINES] + [f"\u2026 +{len(lines) - MAX_DIFF_LINES} more lines"]
+    return "\n".join(lines) or "(no text change)"
+
+
+def _companion_delta(old: dict, new: dict) -> list[str]:
+    lines = []
+    for rel in sorted(set(new) - set(old)):
+        lines.append(f"[green]+ {rel}[/green]")
+    for rel in sorted(set(old) - set(new)):
+        lines.append(f"[red]- {rel}[/red]")
+    return lines
+
+
+def _confirm_apply(title: str, body: str, extra: list[str] | None = None) -> bool:
+    console.print(Panel(body, title=title, border_style="yellow"))
+    for line in extra or []:
+        console.print(f"  {line}")
+    return Confirm.ask("Apply?", default=False)
 
 
 # --- select_menu (ported from visref-canvas-builder) -----------------------
@@ -222,6 +254,28 @@ def _action_import(store, adapters, man, man_path, adopted: bool) -> None:
     name = _pick_skill(names)
     if name is None:
         return
+    # diff preview — the v1 guard (no in-TUI undo)
+    ttext, tcomps, _ = adapter.read_skill(name)
+    if isinstance(ttext, bytes):
+        ttext = ttext.decode("utf-8")
+    existing = store.load(name)
+    if existing:
+        ok = _confirm_apply(
+            f"import {name}: replace store copy",
+            _diff_preview(
+                canonical_text(existing), normalize_text(ttext),
+                f"a/{name}/SKILL.md", f"b/{name}/SKILL.md",
+            ),
+            _companion_delta(existing.companions, tcomps),
+        )
+    else:
+        ok = _confirm_apply(
+            f"import {name}: will create",
+            f"SKILL.md + {len(tcomps)} companion file(s)",
+        )
+    if not ok:
+        console.print("[dim]skipped[/dim]")
+        return
     issues = adopt(store, adapter, man, name) if adopted else import_skill(store, adapter, man, name)
     _print_issues(issues)
     M.save(man_path, man)
@@ -235,7 +289,31 @@ def _action_export(store, adapters, man, man_path) -> None:
     tid = select_menu([(t, t, "") for t in adapters])
     if tid is None:
         return
-    issues = export_skill(store, adapters[tid], man, name)
+    adapter = adapters[tid]
+    bundle = store.load(name)
+    # diff preview — the v1 guard (no in-TUI undo)
+    existing_tid = M.target_id(man, name, tid) or adapter.list_skills().get(name)
+    if existing_tid:
+        ttext, tcomps, _ = adapter.read_skill(existing_tid)
+        if isinstance(ttext, bytes):
+            ttext = ttext.decode("utf-8")
+        ok = _confirm_apply(
+            f"export {name} \u2192 {tid}: replace target copy",
+            _diff_preview(
+                normalize_text(ttext), canonical_text(bundle),
+                f"a/{name}/SKILL.md", f"b/{name}/SKILL.md",
+            ),
+            _companion_delta(tcomps, bundle.companions),
+        )
+    else:
+        ok = _confirm_apply(
+            f"export {name} \u2192 {tid}: will create",
+            f"SKILL.md + {len(bundle.companions)} companion file(s)",
+        )
+    if not ok:
+        console.print("[dim]skipped[/dim]")
+        return
+    issues = export_skill(store, adapter, man, name)
     _print_issues(issues)
     M.save(man_path, man)
 
