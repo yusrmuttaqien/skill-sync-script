@@ -41,22 +41,38 @@ def unwrap(note: str) -> str:
     return note
 
 
+def split_frontmatter(note: str) -> str | None:
+    """The wrapper frontmatter block (including its `---` lines), or None."""
+    lines = note.split("\n")
+    if lines and lines[0].strip() == "---":
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                return "\n".join(lines[: i + 1])
+    return None
+
+
 class ObsidianAdapter(FilesystemAdapter):
     def __init__(self, root, id: str = "obsidian", tags: list[str] | None = None):
         super().__init__(root, id=id, layout="flat")
         self.tags = tags or []
 
-    def wrap(self, text: str) -> str:
+    def wrap(self, text: str, existing_note: str | None = None) -> str:
+        """Wrap skill in fence; pass-through existing wrapper frontmatter (G)."""
         fence = _fence_for(text)
-        tags = "".join(f"  - {t}\n" for t in self.tags)
-        return f"---\ntags:\n{tags}---\n{fence}\n{text}{fence}\n"
+        fm = split_frontmatter(existing_note) if existing_note else None
+        if fm is None:
+            tags = "".join(f"  - {t}\n" for t in self.tags)
+            fm = f"---\ntags:\n{tags}---"
+        return f"{fm}\n{fence}\n{text}{fence}\n"
 
     def _read_flat(self, target_id: str):
         note = self._file(target_id).read_text(encoding="utf-8")
         return unwrap(note).encode("utf-8"), {}, {}
 
     def _write_flat(self, target_id: str, text: str, companions: dict[str, bytes]) -> None:
-        self._file(target_id).write_text(self.wrap(text), encoding="utf-8")
+        f = self._file(target_id)
+        existing = f.read_text(encoding="utf-8") if f.exists() else None
+        f.write_text(self.wrap(text, existing), encoding="utf-8")
 
     def _create_flat(self, name: str) -> str:
         from .filesystem import _MINIMAL
