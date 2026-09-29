@@ -22,6 +22,7 @@ class Bundle:
     frontmatter: dict  # ordered: name, description, then unknown fields
     body: str
     companions: dict[str, bytes] = field(default_factory=dict)  # relpath → bytes
+    modes: dict[str, int] = field(default_factory=dict)  # relpath → file mode (exec bits)
 
     @property
     def description(self) -> str:
@@ -50,7 +51,12 @@ def serialize_skill(frontmatter: dict, body: str) -> str:
     return f"---\n{fm}\n---\n{body}"
 
 
-def bundle_from_text(name: str, text: str, companions: dict[str, bytes] | None = None) -> Bundle:
+def bundle_from_text(
+    name: str,
+    text: str,
+    companions: dict[str, bytes] | None = None,
+    modes: dict[str, int] | None = None,
+) -> Bundle:
     fm, body = parse_skill(text)
     # Reorder: name, description first, unknown fields keep their order.
     ordered: dict = {}
@@ -59,7 +65,13 @@ def bundle_from_text(name: str, text: str, companions: dict[str, bytes] | None =
             ordered[key] = fm.pop(key)
     ordered.update(fm)
     ordered.setdefault("name", name)
-    return Bundle(name=name, frontmatter=ordered, body=body, companions=companions or {})
+    return Bundle(
+        name=name,
+        frontmatter=ordered,
+        body=body,
+        companions=companions or {},
+        modes=modes or {},
+    )
 
 
 def canonical_text(bundle: Bundle) -> str:

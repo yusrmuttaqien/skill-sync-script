@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 
 # `./` at a path-token start: line start, or after whitespace / common delimiters.
-_DOT_SLASH = re.compile(r"(^|[\s\"'`(=\[>])\./", re.MULTILINE)
+_DOT_SLASH = re.compile(r"(^|[\s\"'`(=\[>])\./(?=[\w])", re.MULTILINE)
 
 
 def normalize_text(text: str) -> str:

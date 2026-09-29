@@ -58,7 +58,8 @@ def _description_present(ctx: Context) -> list[Issue]:
     if ctx.text is None:
         return []
     fm, _ = parse_skill(ctx.text)
-    if not str(fm.get("description", "")).strip():
+    desc = fm.get("description")
+    if desc is None or not str(desc).strip():
         return [Issue("description_present", "error", "`description` empty")]
     return []
 
@@ -130,12 +131,14 @@ def _cross_skill_mentions(ctx: Context) -> list[Issue]:
 def _store_integrity(ctx: Context) -> list[Issue]:
     if ctx.bundle is None or ctx.dir_name is None:
         return []
-    if ctx.dir_name != ctx.bundle.name:
+    # frontmatter name, not bundle.name (which may have been set to the dir name)
+    fm_name = ctx.bundle.frontmatter.get("name")
+    if ctx.dir_name != fm_name:
         return [
             Issue(
                 "store_integrity",
                 "error",
-                f"dir name {ctx.dir_name!r} != frontmatter name {ctx.bundle.name!r}",
+                f"dir name {ctx.dir_name!r} != frontmatter name {fm_name!r}",
             )
         ]
     return []
