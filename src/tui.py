@@ -249,6 +249,93 @@ def ask_confirm(prompt: str, default: bool = False) -> bool | None:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
+def select_multi(items):
+    """Arrow-key multi-select. Space toggles, Enter confirms, Esc cancels.
+
+    items: list of (key, label, detail). Returns the set of chosen keys
+    (empty set = cancelled). Non-TTY falls back to a comma-separated prompt.
+    """
+    if not items:
+        return set()
+    keys = [k for k, _, _ in items]
+    if not _is_tty():
+        from rich.prompt import Prompt
+
+        raw = Prompt.ask("Select (comma-separated, or 'all')")
+        if raw.strip().lower() == "all":
+            return set(keys)
+        return {k.strip() for k in raw.split(",") if k.strip() in keys}
+
+    import select as _select
+    import termios
+    import tty
+
+    n = len(items)
+    selected: set = set()
+    idx = 0
+
+    def renderable(i):
+        rows = []
+        for j, (key, label, detail) in enumerate(items):
+            mark = "[bold green]x[/bold green]" if key in selected else " "
+            suffix = f"  [dim]{detail}[/dim]" if detail else ""
+            if j == i:
+                rows.append(Text.from_markup(f"[bold cyan]\u25b8[/bold cyan] {mark} {label}{suffix}"))
+            else:
+                rows.append(Text.from_markup(f"    {mark} {label}{suffix}"))
+        rows.append(Text.from_markup(
+            "[dim]\u2191/\u2193 navigate \u00b7 space toggle \u00b7 Enter confirm \u00b7 Esc back[/dim]"))
+        return Group(*rows)
+
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    tty.setcbreak(fd)
+    try:
+        with Live(renderable(idx), console=console, refresh_per_second=12, transient=True) as live:
+            while True:
+                if os.name == "posix":
+                    r, _, _ = _select.select([fd], [], [], 0.2)
+                    if not r:
+                        continue
+                    b = os.read(fd, 1)
+                    if b == b"\x1b":
+                        r2, _, _ = _select.select([fd], [], [], 0.05)
+                        if not r2:
+                            return set()  # lone Esc -> cancel
+                        b2 = os.read(fd, 1)
+                        if b2 in (b"[", b"O"):
+                            r3, _, _ = _select.select([fd], [], [], 0.05)
+                            if r3:
+                                b3 = os.read(fd, 1)
+                                if b2 + b3 in (b"[A", b"OA"):
+                                    idx = (idx - 1) % n
+                                    live.update(renderable(idx))
+                                elif b2 + b3 in (b"[B", b"OB"):
+                                    idx = (idx + 1) % n
+                                    live.update(renderable(idx))
+                    elif b in (b"\r", b"\n"):
+                        return selected
+                    elif b == b"\x03":
+                        raise KeyboardInterrupt
+                    elif b == b" ":
+                        k = keys[idx]
+                        selected.symmetric_difference_update({k})
+                        live.update(renderable(idx))
+                    else:
+                        ch = b.decode("utf-8", errors="ignore").lower()
+                        if len(ch) == 1 and ch in keys:
+                            selected.symmetric_difference_update({ch})
+                            live.update(renderable(idx))
+                else:
+                    raise NotImplementedError  # Windows: use the non-TTY path
+    finally:
+        if os.name == "posix":
+            try:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old)
+            except Exception:
+                pass
+
+
 # --- editor ------------------------------------------------------------------
 
 def _editor() -> list[str]:
@@ -542,6 +629,63 @@ def _action_repoint(store, adapters, man) -> None:
     console.print(f"[green]repointed {name} on {tid}[/green]")
 
 
+def _action_batch(store, adapters, man, man_path) -> None:
+    kind = select_menu([
+        ("i", "Batch Import", "target \u2192 store"),
+        ("e", "Batch Export", "store \u2192 target"),
+    ])
+    if kind is None:
+        return
+    if kind == "i":
+        tid = select_menu([(t, t, "") for t in adapters])
+        if tid is None:
+            return
+        adapter = adapters[tid]
+        full = adapter.list_skills_full()
+        managed = {
+            n for n, e in man["skills"].items()
+            if tid in e.get("targets", {})
+        }
+        items = [
+            (s["id"], s["name"],
+             "" if s["name"] in managed else "[dim]unmanaged \u2014 adopt first[/dim]")
+            for s in full
+        ]
+        chosen = select_multi(items)
+        if not chosen:
+            return
+        names = [s["name"] for s in full if s["id"] in chosen and s["name"] in managed]
+        skipped = len(chosen) - len(names)
+        if not names:
+            console.print("[yellow]no managed skills selected (unmanaged need Adopt first)[/yellow]")
+            return
+        note = f" ({skipped} unmanaged skipped)" if skipped else ""
+        if not ask_confirm(f"Import {len(names)} skill(s) from {tid}?{note}"):
+            return
+        for name in names:
+            issues = import_skill(store, adapter, man, name)
+            if issues:
+                console.print(f"[dim]{name}[/dim]")
+                _print_issues(issues)
+    else:
+        names_all = store.list_skills()
+        chosen = select_multi([(n, n, "") for n in names_all])
+        if not chosen:
+            return
+        tid = select_menu([(t, t, "") for t in adapters])
+        if tid is None:
+            return
+        names = [n for n in names_all if n in chosen]
+        if not ask_confirm(f"Export {len(names)} skill(s) to {tid}?"):
+            return
+        for name in names:
+            issues = export_skill(store, adapters[tid], man, name)
+            if issues:
+                console.print(f"[dim]{name}[/dim]")
+                _print_issues(issues)
+    M.save(man_path, man)
+
+
 def _action_view(store) -> None:
     """N: store browser — view any file."""
     from rich.prompt import Prompt
@@ -598,6 +742,7 @@ def run(config_path: str | None = None) -> None:
             ("i", "Import", "target \u2192 store"),
             ("e", "Export", "store \u2192 target"),
             ("a", "Adopt", "import + mark adopted"),
+            ("b", "Batch", "import/export a set at once"),
             ("r", "Rename", "store skill"),
             ("p", "Repoint", "fix stale absolute store paths"),
             ("d", "Delete", "from store"),
@@ -628,6 +773,8 @@ def run(config_path: str | None = None) -> None:
                 _action_scan(store, adapters)
             elif choice == "p":
                 _action_repoint(store, adapters, man)
+            elif choice == "b":
+                _action_batch(store, adapters, man, man_path)
             elif choice == "v":
                 _action_view(store)
         except KeyboardInterrupt:

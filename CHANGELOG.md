@@ -67,8 +67,9 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
    `~ paths-stale` needs D, `~ orphan` needs the scan wiring (R).
 
 **L. ✅ Repoint action** — `p` in TUI: rel→abs rewrite to current store path; status `~ paths-stale` (text differs only in store prefix).
-**M. ⏸ Batch in TUI** — `batch()` exists in operations.py; no TUI multi-select
-   yet (needs a multi-select interaction). Deferred.
+**M. ✅ Batch in TUI** — `b`: Batch Import/Export; multi-select (space toggle,
+   Enter confirm, Esc cancel); managed-only sources (unmanaged shown dimmed,
+   "adopt first"); one confirm with count.
 **N. ✅ Store browser** — `v` in TUI: pick skill → pick file → view.
 **O. ✅ Nameless import prompt** — inline "set it" prompt; store name follows the override.
 **P. ⏸ Bare-filename candidates** — per-occurrence decision (list + context +
