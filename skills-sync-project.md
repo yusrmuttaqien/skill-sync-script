@@ -178,18 +178,38 @@ Adapter:
 
 ### OpenWebUI
 
-- Access: official skills API (`/api/v1/skills/`), **official API key**
-  created in OWUI (Settings → Interface → API Keys, `sk-owui-…`),
-  `Authorization: Bearer`. No JWT minting.
+- Access: official skills API (`/api/v1/skills/`), **personal API key**
+  (`sk-` + 32 hex). Created in Settings → Account → API keys → Show →
+  Create new secret key (requires the admin global toggle: Settings →
+  Admin → Authentication → API Keys on). `Authorization: Bearer sk-…`.
+  One key per account; key acts as its owner (full permissions).
 - **Rigid**: what the API lists *is* the skill inventory — no stray-entry
   problem
-- **put() semantics**: update if the name matches an existing skill; name
-  new/changed (rename flow) → **recreate** (delete + create) — OWUI ids are
-  derived from the name at creation, so identity is server-side state
-  (to be verified against the real API; key/permission setup pending)
+- **Identity split**: `id` = kebab-case slug (client-provided at create;
+  this is the identity and matches our normalized name), `name` =
+  free-form display name. TUI writes both from the frontmatter name
+  (id = normalized name, name = same string)
+- **`content` = the complete SKILL.md text** (frontmatter block included —
+  confirmed in existing skills). The `id`/`name`/`description` fields are
+  a redundant mirror for UI display. Export: content = canonical SKILL.md
+  (with OWUI transforms), fields filled from the frontmatter. Import:
+  parse content as a normal SKILL.md — fields are display-only, content
+  wins
+- **put() semantics**: `POST /id/{id}/update` (full form) when the id
+  exists; id new/changed (rename flow) → **recreate** (`POST /create` +
+  `DELETE /id/{old}/delete`) — id is server-side state
 - **Duplicate normalized names within the target** → both flagged,
   disambiguated by OWUI id; user picks which one is "the" skill (or renames
   one)
+- **Endpoints** (verified against v0.11.4):
+  - `GET /api/v1/skills/export` → all skills with full `content` (scan uses this — one call)
+  - `GET /api/v1/skills/id/{id}` → single skill with `content`
+  - `POST /api/v1/skills/create` → `{id, name, content, description?, meta?, is_active?}`
+  - `POST /api/v1/skills/id/{id}/update` → same form, by id
+  - `DELETE /api/v1/skills/id/{id}/delete`
+  - `POST /api/v1/skills/id/{id}/toggle` → `is_active`
+- **`is_active`**: OWUI can disable a skill without deleting it; scan
+  reports it, export sets it true (managed skills are active)
 - All current OWUI skills are single-file (no inlined-companion migration needed)
 - **Markers/guide sections are structural, not text**: stripped before
   comparison, so deleting a guide section is not a content change. Edit
@@ -296,7 +316,7 @@ prompt to fill in targets, then first scan.
   "store":   { "path": "~/Documents/skill-sync/store" },
   "targets": {
     "pi":        { "type": "pi", "skills_dir": "~/.pi/agent/skills" },
-    "openwebui": { "type": "openwebui", "url": "http://localhost:30002", "api_key": "" },
+    "openwebui": { "type": "openwebui", "url": "http://localhost:30001", "api_key": "" },
     "obsidian":  { "type": "obsidian", "skills_dir": "~/Documents/Obsidian/yusrmuttaqien-obsidian/📍 Guides/ai/skills", "default_tags": ["ai-chat"] }
   },
   "ignore":  [".*"],
