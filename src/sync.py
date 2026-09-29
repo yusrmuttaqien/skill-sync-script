@@ -15,8 +15,13 @@ from . import manifest as M
 from .adapter import Adapter
 from .canonical import Bundle, bundle_from_text, canonical_text
 from .checks import Context, IMPORT, run_checks
+from .links import to_absolute, to_relative
 from .normalize import normalize_text
 from .store import Store
+
+
+def _is_filesystem(adapter: Adapter) -> bool:
+    return getattr(adapter, "layout", None) is not None
 
 
 def _target_id(adapter: Adapter, man: dict, name: str) -> str:
@@ -36,6 +41,8 @@ def import_skill(store: Store, adapter: Adapter, man: dict, name: str, strict: b
     if isinstance(text, bytes):
         text = text.decode("utf-8")
     text = normalize_text(text)
+    if _is_filesystem(adapter):
+        text = to_relative(text, store.skill_dir(name))
     bundle = bundle_from_text(name, text, companions, modes)
     # exact-mirror rule: keep store companions still referenced by the new
     # SKILL.md; everything else is dropped (store.save mirrors the bundle).
@@ -69,6 +76,8 @@ def export_skill(store: Store, adapter: Adapter, man: dict, name: str) -> list:
         # not on target yet → find by name, else create
         tid = adapter.list_skills().get(name) or adapter.create_skill(name)
     text = canonical_text(bundle)
+    if _is_filesystem(adapter):
+        text = to_absolute(text, store.skill_dir(name), bundle.companions)
     adapter.write_skill(tid, text, bundle.companions)
     M.set_target(
         man, name, adapter.id, tid,
