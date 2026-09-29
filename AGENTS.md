@@ -22,8 +22,9 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 - `CHANGELOG.md` — progress log + phase tracker, human + model editable;
   **the `Backlog — gaps vs draft` section is the work queue** (items A–R,
   build order A→B→C→D→E→F then G–K, L–T; check items off as they land).
-  **Status: all A–R items complete (session 9, 2026-09-29).**
+  **Status: A–R complete (session 9); S–T open (second audit).**
 - `AGENTS.md` — this file
+- `README.md` — user-facing overview (run, config, TUI keys)
 - `skills-sync-project.md` — spec (edit only when a behavior decision changes)
 
 ## Build Conventions
@@ -60,10 +61,10 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 
 `config` load/generate · `name` kebab-case · `normalize` idempotent text pass ·
 `canonical` Bundle + SKILL.md parse/serialize · `checks` the suite + triggers ·
-`store` local hub · `filesystem` dir adapter (pi/obsidian) · `openwebui` HTTP
-adapter · `adapter` factory · `manifest` sync.json · `status` the join ·
-`sync` import/export · `operations` adopt/rename/delete/batch · `tui` rich UI ·
-`__main__` entry
+`store` local hub · `filesystem` dir adapter (pi) · `obsidian` vault adapter ·
+`openwebui` HTTP adapter · `links` rel↔abs rewrite · `adapter` factory ·
+`manifest` sync.json · `status` the join · `sync` import/export ·
+`operations` adopt/rename/delete/batch · `tui` rich UI · `__main__` entry
 
 ## Verification
 

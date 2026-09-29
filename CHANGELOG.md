@@ -22,9 +22,9 @@ Spec: `skills-sync-project.md` (behavior source of truth). Workflow: `AGENTS.md`
 | 2 | Store | ✅ | layout, integrity, template create, post-edit checks, companion modes |
 | 3 | Adapters | ✅ | filesystem (pi/obsidian) + openwebui HTTP — list/read/write/delete/create |
 | 4 | Manifest + status | ✅ | sync.json source of truth, status join, target-down resilience |
-| 5 | Import / Export | ✅ | check-gated pull/push; **deferred**: diff preview, link rewrite, OWUI inline flatten |
-| 6 | Adopt / Rename / Delete / Batch | ✅ | adopt, rename (+cross-skill mentions), delete (synced-target report), batch; **deferred**: repoint |
-| 7 | TUI assembly | ✅ | page-based flow, arrow-key select_menu (visref style), $EDITOR + post-edit loop; **deferred**: onboarding prompts |
+| 5 | Import / Export | ✅ | check-gated pull/push, diff preview, link rewrite, OWUI inline flatten |
+| 6 | Adopt / Rename / Delete / Batch | ✅ | adopt (write-back), rename (+cross-skill mentions), delete (synced-target report), batch, repoint |
+| 7 | TUI assembly | ✅ | page-based flow, arrow-key select_menu (visref style), $EDITOR + post-edit loop, onboarding, Esc cancels everywhere |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done
 
@@ -80,6 +80,14 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
 **R. ✅ Minor** — symlink-flattened warning in post_edit; `! offline`/`! error`
    cells; duplicate names flagged in scan. (duplicate_names check itself stays
    store-level; target dups surfaced via list_skills_full in scan.)
+
+**Second audit (2026-09-29, post A–R):**
+**S. ⏸ Target-copy-only delete** — draft defines two deletes: target copy (that
+target only) AND store identity (copies become `+` unmanaged). Today: store
+delete + optional cascade to targets. No target-copy-only delete.
+**T. ⏸ Import vs Adopt visibility** — draft: make the difference explicit at the
+point of choice ("target's copy is NOT touched" vs "take over the target's
+copy"). Menu descriptions are terse.
 
 ## Log
 
