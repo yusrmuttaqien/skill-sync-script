@@ -77,7 +77,7 @@ Menu (arrow keys / keys, **Esc cancels every step**):
 | `a` | **Adopt** — import + take over the target copy (normalized write-back) |
 | `b` | **Batch** — import/export a multi-selected set (managed-only sources) |
 | `r` | **Rename** — store skill (cross-skill mentions updated) |
-| `p` | **Repoint** — fix stale absolute store paths |
+| `p` | **Repoint** — fix stale absolute store paths (one skill, or all at once after a store move) |
 | `d` | **Delete** — from store (asks about synced targets first) or from a single target (copy only) |
 | `c` | **Create** — new skill (template + `$EDITOR`) |
 | `s` | **Scan** — run the checks suite on the store |

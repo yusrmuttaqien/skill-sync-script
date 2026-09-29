@@ -674,27 +674,21 @@ def _action_scan(store, adapters) -> None:
             console.print(f"[red]{tid}: duplicate names: {', '.join(dups)}[/red]")
 
 
-def _action_repoint(store, adapters, man) -> None:
-    """L: rewrite stale absolute store paths to the current store location."""
+def _repoint_one(store, adapters, man, name: str, tid: str) -> bool:
+    """Repoint one skill × target. Returns True on success."""
     from .links import old_skill_prefix, to_absolute, to_relative
-
-    names = [n for n in man["skills"] if n in store.list_skills()]
-    name = _pick_skill(names)
-    if name is None:
-        return
-    managed = [t for t in man["skills"].get(name, {}).get("targets", {})
-               if M.target_id(man, name, t) and t in adapters]
-    tid = select_menu([(t, t, "") for t in managed]) if managed else None
-    if tid is None:
-        console.print("[dim]not managed on any target[/dim]")
-        return
-    adapter = adapters[tid]
-    tid_id = M.target_id(man, name, tid)
-    text, comps, _ = adapter.read_skill(tid_id)
-    if isinstance(text, bytes):
-        text = text.decode("utf-8")
     from .normalize import normalize_text
 
+    adapter = adapters[tid]
+    tid_id = M.target_id(man, name, tid)
+    if tid_id is None:
+        return False
+    try:
+        text, comps, _ = adapter.read_skill(tid_id)
+    except Exception:
+        return False
+    if isinstance(text, bytes):
+        text = text.decode("utf-8")
     blob_text = (M.get_blobs(man, name, tid) or {}).get("SKILL.md", b"").decode("utf-8", "replace")
     old = old_skill_prefix(text, name) or old_skill_prefix(blob_text, name)
     text = to_relative(normalize_text(text), store.skill_dir(name), [old] if old else [])
@@ -708,7 +702,43 @@ def _action_repoint(store, adapters, man) -> None:
         adopted=M.is_adopted(man, name, tid),
         blobs={"SKILL.md": ttext.encode("utf-8"), **tcomps},
     )
-    console.print(f"[green]repointed {name} on {tid}[/green]")
+    return True
+
+
+def _action_repoint(store, adapters, man) -> None:
+    """L: rewrite stale absolute store paths to the current store location."""
+    names = [n for n in man["skills"] if n in store.list_skills()]
+    scope = select_menu([
+        ("s", "One skill", "pick skill → target"),
+        ("a", "All skills", "every managed skill × target (store move)"),
+    ])
+    if scope is None:
+        return
+    if scope == "a":
+        done, failed = 0, 0
+        for name in names:
+            for t in man["skills"].get(name, {}).get("targets", {}):
+                if M.target_id(man, name, t) and t in adapters:
+                    if _repoint_one(store, adapters, man, name, t):
+                        done += 1
+                    else:
+                        failed += 1
+        console.print(f"[green]repointed {done} skill(s)[/green]"
+                     + (f" [red]{failed} failed[/red]" if failed else ""))
+        return
+    name = _pick_skill(names)
+    if name is None:
+        return
+    managed = [t for t in man["skills"].get(name, {}).get("targets", {})
+               if M.target_id(man, name, t) and t in adapters]
+    tid = select_menu([(t, t, "") for t in managed]) if managed else None
+    if tid is None:
+        console.print("[dim]not managed on any target[/dim]")
+        return
+    if _repoint_one(store, adapters, man, name, tid):
+        console.print(f"[green]repointed {name} on {tid}[/green]")
+        return
+    console.print("[red]repoint failed[/red]")
 
 
 def _action_batch(store, adapters, man, man_path) -> None:

@@ -97,7 +97,7 @@ store · target copy untouched"; Adopt "import + take over target copy
 - `links.py` — `to_relative` accepts extra prefixes; `old_skill_prefix` extracts the embedded store skill-dir from a target text
 - `status.py` — `paths-stale` now fires when the target (vs the synced blob) embeds an old store root, not only on blob-vs-target prefix mismatch
 - `tui.py` — repoint strips the old root (from target text or blob) before re-anchoring at the current root
-- Flow: `mv` the store dir → update `store.path` in config → status shows `paths-stale` → `p` Repoint per skill × target
+- Flow: `mv` the store dir → update `store.path` in config → status shows `paths-stale` → `p` Repoint — **one skill** or **all skills × targets** (batched)
 **Lessons**: staleness is a property of the *target text vs the current root*, not just target-vs-blob — both can be stale together (identical) after a move
 
 ## [2026-09-29] — Session 9: backlog A–R sweep
