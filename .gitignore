@@ -1,5 +1,5 @@
-skills-sync-project.md.old
 venv/
 *.egg-info/
 __pycache__/
+config.json
 config.json
