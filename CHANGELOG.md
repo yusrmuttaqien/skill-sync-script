@@ -24,9 +24,59 @@ Spec: `skills-sync-project.md` (behavior source of truth). Workflow: `AGENTS.md`
 | 4 | Manifest + status | ✅ | sync.json source of truth, status join, target-down resilience |
 | 5 | Import / Export | ✅ | check-gated pull/push; **deferred**: diff preview, link rewrite, OWUI inline flatten |
 | 6 | Adopt / Rename / Delete / Batch | ✅ | adopt, rename (+cross-skill mentions), delete (synced-target report), batch; **deferred**: repoint |
-| 7 | TUI assembly | ✅ | rich status view, key-driven actions, $EDITOR + post-edit prompt loop; **deferred**: paged screens, onboarding prompts |
+| 7 | TUI assembly | ✅ | page-based flow, arrow-key select_menu (visref style), $EDITOR + post-edit loop; **deferred**: onboarding prompts |
 
 Status legend: ⬜ not started · 🔨 in progress · ✅ done
+
+## Backlog — gaps vs draft v2 (audit 2026-09-29)
+
+Checked `skills-sync-project.md` against the implementation. Suggested build order:
+A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/polish).
+
+**A. Manifest last-synced hash + blob** — per skill × target: hash+blob of SKILL.md
+   and each companion (= merge base). Powers drift detection, status states,
+   repoint detection. (manifest.py, sync.py, status.py)
+**B. Diff preview before apply** — the v1 guard (no in-TUI undo). Import/export/
+   adopt show the would-be replacement diff and require confirm.
+**C. Exact-mirror companion set on import** — new store set = (source companions)
+   ∪ (store companions still referenced by imported SKILL.md); unreferenced
+   removed + listed in the diff. store.save must also drop stale files.
+**D. Link rewrite engine** — export: relative refs → absolute store paths (pi,
+   Obsidian); import: abs → rel (the streamlining). Longest-first,
+   token-boundary, skip URL/qualified contexts. Companions stay single-copy in
+   the store; pi/Obsidian refs point at it (stop copying companions there).
+**E. OWUI flatten** — small companions in `<!-- file:<relpath> -->…<!-- /file -->`
+   markers (base64 for binary; large → link + guide text via `hostname` /
+   `open_terminal` templates), markers at end of md, re-parsed on import
+   (lossless), markers structural-not-text (stripped before compare; missing
+   markers + identical text → auto-restore companions).
+**F. Adopt write-back** — adopt = import + write normalized version back to the
+   target (store becomes single physical copy). Currently flag-only.
+
+**G. Obsidian wrapper pass-through** — preserve existing wrapper frontmatter
+   (`status: fix`, extra fields) on export; only replace fenced content.
+   Currently regenerated from config tags (loses `status`).
+**H. OWUI put semantics** — id new/changed (rename) → recreate (POST /create +
+   DELETE /old); duplicate normalized names in target → flag both, disambiguate
+   by id, user picks (list_skills keeps last today); `is_active` in scan.
+**I. pi scan details** — folders without SKILL.md flagged as unimportable
+   candidates; unmanaged originals indexed with `+`.
+**J. Obsidian validity rule** — skill iff last top-level fence starts with
+   frontmatter (today: any `*.md`).
+**K. Status states** — `+ to-add / ~ changed / ~ paths-stale / ~ orphan /
+   ! offline / ! error` (needs A).
+
+**L. Repoint action** — fix stale absolute paths (auto-suggested by status; needs D).
+**M. Batch in TUI** — batch import/export of a selected set; managed skills
+   only as sources.
+**N. Store browser** — view files (beyond edit).
+**O. Nameless/malformed import prompt** — "set name (and description) now?" inline.
+**P. Bare-filename candidates** — per-occurrence decision (list + context +
+   checkbox), today warn-only.
+**Q. Onboarding** — first-run pass: fill targets → first scan.
+**R. Minor** — symlink-flattening warning; `! offline`/`! error` per-target
+   display (failures isolated but invisible); duplicate_names check not wired
+   to a scan action (target_names context unused).
 
 ## Log
 

@@ -19,7 +19,9 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 
 ## Root Ownership
 
-- `CHANGELOG.md` — progress log + phase tracker, human + model editable
+- `CHANGELOG.md` — progress log + phase tracker, human + model editable;
+  **the `Backlog — gaps vs draft` section is the work queue** (items A–R,
+  build order A→B→C→D→E→F then G–K, L–T; check items off as they land)
 - `AGENTS.md` — this file
 - `skills-sync-project.md` — spec (edit only when a behavior decision changes)
 
