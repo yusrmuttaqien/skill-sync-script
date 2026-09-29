@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Centralized skill management across pi, OpenWebUI, and Obsidian",
     )
     parser.add_argument("--version", action="version", version=f"skillsync {__version__}")
-    parser.add_argument("--config", help="Config file path (default: <store dir>/config.json)")
+    parser.add_argument("--config", help="Config file path (default: <project root>/config.json)")
     parser.add_argument(
         "--generate-config",
         action="store_true",

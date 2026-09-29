@@ -34,11 +34,14 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 
 ## Environment & Dependencies
 
-- Venv: `venv/` (Python 3.12) — `venv/bin/python`; **install with
-  `venv/bin/pip` directly** (not `uv pip`) to avoid permission prompts
-  (`venv/bin/pip install -e .`)
+- **No project/packaging setup** — no pyproject install; the repo root is
+  the app. Run: `source venv/bin/activate && python skillsync.py [flags]`
+  (root entry script → `src/__main__.main`)
+- Venv: `venv/` (Python 3.12); **install with `venv/bin/pip` directly**
+  (not `uv pip`) to avoid permission prompts
+  (`venv/bin/pip install -r requirements.txt`)
 - `requirements.txt` is the dependency record: **regenerate it in the same
-  commit that changes dependencies** (`uv pip freeze --python venv/bin/python | grep -v "^-e " > requirements.txt`)
+  commit that changes dependencies** (`venv/bin/pip freeze | grep -v "^pip" > requirements.txt`)
 
 ## Commit Conventions
 
@@ -52,6 +55,6 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 
 ## Verification
 
-- `python -m skillsync --help` (entry point works)
+- `source venv/bin/activate && python skillsync.py --help` (entry works)
 - Config round-trip: generate → load → defaults intact
 - No test framework in v1 — verify against the real local targets

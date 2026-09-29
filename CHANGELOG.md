@@ -63,3 +63,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 **Lessons**:
 - Appending to .gitignore without a trailing newline corrupts the previous line — check after manual user edits
 - `config.json` gitignored: generated artifact + secret; fresh clone auto-generates it
+
+## [2026-09-29] — Session 4
+**Task**: Drop project/packaging setup — plain venv + `python -m src`
+**Changes**:
+- Removed `pyproject.toml` + editable install (kills `skillsync.egg-info` at the source)
+- `requirements.txt` — plain deps only (rich + transitive), no `-e` refs
+- `skillsync.py` — root entry script; run = `source venv/bin/activate && python skillsync.py [flags]`
+- `AGENTS.md` — run/install lines updated
+**Lessons**:
+- `pip uninstall` needs `-y` in non-tty shells (prompts → EOFError)
+- `python -m src` works off the PEP 420 namespace package — no `src/__init__.py` needed
+- Version now reports `0.0.0+local` (importlib.metadata fallback, no installed dist) — acceptable
