@@ -202,14 +202,23 @@ def prompt_edit_until_clean(store: Store, name: str) -> None:
 
 def _state_mark(state: str) -> str:
     return {
-        "in-sync": "[green]\u2713[/green]",
-        "changed": "[yellow]~[/yellow]",
-        "unmanaged": "[cyan]+[/cyan]",
-        "to-add": "[cyan]+[/cyan]",
-        "offline": "[red]![/red]",
-        "error": "[red]![/red]",
-        "absent": "[dim]\u2014[/dim]",
-    }.get(state, "[dim]\u2014[/dim]")
+        "in-sync": "[green]in-sync[/green]",
+        "changed": "[yellow]changed[/yellow]",
+        "paths-stale": "[yellow]paths-stale[/yellow]",
+        "unmanaged": "[cyan]unmanaged[/cyan]",
+        "to-add": "[cyan]to-add[/cyan]",
+        "offline": "[red]offline[/red]",
+        "error": "[red]error[/red]",
+        "absent": "[dim]absent[/dim]",
+    }.get(state, "[dim]absent[/dim]")
+
+
+LEGEND = (
+    "[dim]legend: in-sync = target matches last sync · changed = target edited outside the tool · "
+    "paths-stale = store moved, absolute refs need repoint · unmanaged = on target, not tracked · "
+    "to-add = in store, not on target · offline = target unreachable · error = read failed · "
+    "absent = nowhere[/dim]"
+)
 
 
 def render_status_table(store: Store, adapters: dict, man: dict) -> None:
@@ -220,11 +229,12 @@ def render_status_table(store: Store, adapters: dict, man: dict) -> None:
     for tid in adapters:
         table.add_column(tid)
     for r in rows:
-        cells = [r.name, "[green]\u2713[/green]" if r.in_store else "[dim]\u2014[/dim]"]
+        cells = [r.name, "[green]in store[/green]" if r.in_store else "[dim]absent[/dim]"]
         for t in r.targets:
             cells.append(_state_mark(t.state))
         table.add_row(*cells)
     console.print(table)
+    console.print(LEGEND)
 
 
 def _pick_skill(names: list[str], in_store: set[str] | None = None):
