@@ -206,7 +206,7 @@ def _state_mark(state: str) -> str:
         "changed": "[yellow]changed[/yellow]",
         "paths-stale": "[yellow]paths-stale[/yellow]",
         "unmanaged": "[cyan]unmanaged[/cyan]",
-        "to-add": "[cyan]to-add[/cyan]",
+        "to-add": "[cyan]exportable[/cyan]",
         "offline": "[red]offline[/red]",
         "error": "[red]error[/red]",
         "absent": "[dim]absent[/dim]",
@@ -216,8 +216,8 @@ def _state_mark(state: str) -> str:
 LEGEND = (
     "[dim]legend: in-sync = target matches last sync · changed = target edited outside the tool · "
     "paths-stale = store moved, absolute refs need repoint · unmanaged = on target, not tracked · "
-    "to-add = in store, not on target · offline = target unreachable · error = read failed · "
-    "absent = nowhere[/dim]"
+    "exportable = in store, ready to export to this target · offline = target unreachable · "
+    "error = read failed · absent = nowhere[/dim]"
 )
 
 
