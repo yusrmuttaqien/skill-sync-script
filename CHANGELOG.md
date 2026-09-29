@@ -30,7 +30,7 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 
 ## Log
 
-## [2026-07-09] — Session 1
+## [2026-09-29] — Session 1
 **Task**: Bootstrap the build system
 **Changes**:
 - `CHANGELOG.md` — created (phase table + this log)
