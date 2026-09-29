@@ -20,6 +20,17 @@ class Adapter:
         """normalized name → target-specific id"""
         raise NotImplementedError
 
+    def list_skills_full(self) -> list[dict]:
+        """[{name, id, is_active}] — exposes duplicate names (spec H)."""
+        return [
+            {"name": n, "id": i, "is_active": True}
+            for n, i in self.list_skills().items()
+        ]
+
+    def rename_on_target(self, old_id: str, new_name: str) -> str | None:
+        """Recreate under a new id (rename); return new id, or None if unsupported."""
+        return None
+
     def read_skill(self, target_id: str) -> tuple[bytes, dict[str, bytes], dict[str, int]]:
         """(SKILL.md bytes, companions relpath→bytes, relpath→mode) — symlinks resolved."""
         raise NotImplementedError

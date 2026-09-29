@@ -24,8 +24,8 @@ def _is_filesystem(adapter: Adapter) -> bool:
     return getattr(adapter, "layout", None) is not None
 
 
-def _target_id(adapter: Adapter, man: dict, name: str) -> str:
-    tid = M.target_id(man, name, adapter.id)
+def _target_id(adapter: Adapter, man: dict, name: str, target_id: str | None = None) -> str:
+    tid = target_id or M.target_id(man, name, adapter.id)
     if tid is not None:
         return tid
     lst = adapter.list_skills()
@@ -34,9 +34,12 @@ def _target_id(adapter: Adapter, man: dict, name: str) -> str:
     raise KeyError(f"skill {name!r} not found on target {adapter.id}")
 
 
-def import_skill(store: Store, adapter: Adapter, man: dict, name: str, strict: bool = True) -> list:
+def import_skill(
+    store: Store, adapter: Adapter, man: dict, name: str, strict: bool = True,
+    target_id: str | None = None,
+) -> list:
     """Pull one skill from target into the store. Returns issues."""
-    tid = _target_id(adapter, man, name)
+    tid = _target_id(adapter, man, name, target_id)
     text, companions, modes = adapter.read_skill(tid)
     if isinstance(text, bytes):
         text = text.decode("utf-8")
@@ -75,6 +78,11 @@ def export_skill(store: Store, adapter: Adapter, man: dict, name: str) -> list:
     if tid is None:
         # not on target yet → find by name, else create
         tid = adapter.list_skills().get(name) or adapter.create_skill(name)
+    elif tid != name:
+        # rename on target (OWUI id follows normalized name) → recreate
+        new_tid = adapter.rename_on_target(tid, name)
+        if new_tid is not None:
+            tid = new_tid
     text = canonical_text(bundle)
     if _is_filesystem(adapter):
         text = to_absolute(text, store.skill_dir(name), bundle.companions)

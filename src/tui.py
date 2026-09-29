@@ -250,12 +250,24 @@ def _action_import(store, adapters, man, man_path, adopted: bool) -> None:
     if tid is None:
         return
     adapter = adapters[tid]
-    names = list(adapter.list_skills())
-    name = _pick_skill(names)
-    if name is None:
+    full = adapter.list_skills_full()
+    counts: dict[str, int] = {}
+    for s in full:
+        counts[s["name"]] = counts.get(s["name"], 0) + 1
+    items = []
+    for s in full:
+        detail = ""
+        if counts[s["name"]] > 1:
+            detail = f"[dim]dup id: {s['id']}[/dim]"
+        elif not s["is_active"]:
+            detail = "[dim]inactive[/dim]"
+        items.append((s["id"], s["name"], detail))
+    tid_id = select_menu(items)
+    if tid_id is None:
         return
+    name = next(s["name"] for s in full if s["id"] == tid_id)
     # diff preview — the v1 guard (no in-TUI undo)
-    ttext, tcomps, _ = adapter.read_skill(name)
+    ttext, tcomps, _ = adapter.read_skill(tid_id)
     if isinstance(ttext, bytes):
         ttext = ttext.decode("utf-8")
     existing = store.load(name)
@@ -276,7 +288,11 @@ def _action_import(store, adapters, man, man_path, adopted: bool) -> None:
     if not ok:
         console.print("[dim]skipped[/dim]")
         return
-    issues = adopt(store, adapter, man, name) if adopted else import_skill(store, adapter, man, name)
+    issues = (
+        adopt(store, adapter, man, name)
+        if adopted
+        else import_skill(store, adapter, man, name, target_id=tid_id)
+    )
     _print_issues(issues)
     M.save(man_path, man)
 

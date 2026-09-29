@@ -117,8 +117,24 @@ class OpenWebUIAdapter(Adapter):
     # --- list / read ------------------------------------------------------
 
     def list_skills(self) -> dict[str, str]:
+        return {s["name"]: s["id"] for s in self.list_skills_full()}
+
+    def list_skills_full(self) -> list[dict]:
         r = self._req("GET", "/api/v1/skills/")
-        return {normalize_name(s["name"]): s["id"] for s in r}
+        return [
+            {
+                "name": normalize_name(s["name"]),
+                "id": s["id"],
+                "is_active": bool(s.get("is_active", True)),
+            }
+            for s in r
+        ]
+
+    def rename_on_target(self, old_id: str, new_name: str) -> str | None:
+        """id is client-chosen → rename = recreate (POST /create + DELETE /old)."""
+        self.create_skill(new_name)
+        self.delete_skill(old_id)
+        return new_name
 
     def read_skill(self, target_id: str) -> tuple[bytes, dict[str, bytes], dict[str, int]]:
         d = self._req("GET", f"/api/v1/skills/id/{target_id}")
