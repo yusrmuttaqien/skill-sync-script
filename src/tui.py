@@ -346,6 +346,50 @@ def launch_editor(path: Path) -> None:
     subprocess.run(_editor() + [str(path)])
 
 
+def _resolve_refs(store: Store, name: str) -> None:
+    """P: per-occurrence ref decisions — create / rewrite / ignore."""
+    import re as _re
+
+    from .checks import ref_candidates
+    from .normalize import normalize_text
+
+    d = store.skill_dir(name)
+    path = d / "SKILL.md"
+    text = path.read_text(encoding="utf-8")
+    bundle = store.load(name)
+    cands = ref_candidates(text, bundle.companions if bundle else {})
+    if not cands:
+        return
+    console.print(Panel("[bold]ref candidates[/bold] — decide per occurrence",
+                        title=name))
+    for i, c in enumerate(cands):
+        console.print(
+            f"  {i + 1}. [{c.kind}] [bold]{c.token}[/bold] \u2192 {c.hint}  "
+            f"[dim]\u00d7{c.count} \u00b7 {c.context}[/dim]"
+        )
+    changed = False
+    for i, c in enumerate(cands):
+        choice = select_menu([
+            ("c", f"{i + 1}. create {c.hint}", "empty file"),
+            ("r", f"{i + 1}. rewrite \u2192 {c.hint}", f"replace {c.count} occurrence(s)"),
+            ("i", f"{i + 1}. ignore", ""),
+        ])
+        if choice == "c":
+            p = d / c.hint
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if not p.exists():
+                p.write_bytes(b"")
+                changed = True
+                console.print(f"  [green]created {c.hint}[/green]")
+        elif choice == "r":
+            text = _re.sub(rf"(?<![\w./-]){_re.escape(c.token)}(?![\w])", c.hint, text)
+            changed = True
+            console.print(f"  [green]rewrote {c.token} \u2192 {c.hint}[/green]")
+        # None (Esc) or "i" → ignore
+    if changed:
+        path.write_text(normalize_text(text), encoding="utf-8")
+
+
 def prompt_edit_until_clean(store: Store, name: str) -> None:
     """After $EDITOR closes: run post-edit checks; loop until clean or kept."""
     while True:
@@ -355,8 +399,9 @@ def prompt_edit_until_clean(store: Store, name: str) -> None:
         for i in issues:
             style = "red" if i.severity == "error" else "yellow"
             console.print(f" [{style}]{i.check}[/{style}] {i.message}")
-        from rich.prompt import Confirm
-
+        if any(i.check == "companion_ref_scan" for i in issues):
+            _resolve_refs(store, name)
+            continue  # re-check after the ref decisions
         keep = ask_confirm("Keep as-is (issues noted)?")
         if keep is None or keep:
             return  # Esc/cancel or yes → stop the edit loop
@@ -581,6 +626,8 @@ def _action_scan(store, adapters) -> None:
         if issues:
             console.print(f"[yellow]{name}[/yellow]")
             _print_issues(issues)
+            if any(i.check == "companion_ref_scan" for i in issues):
+                _resolve_refs(store, name)
     for tid, adapter in adapters.items():
         unimp = adapter.list_unimportable()
         if unimp:

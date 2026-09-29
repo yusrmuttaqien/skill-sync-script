@@ -40,6 +40,42 @@ class Issue:
     message: str
 
 
+@dataclass
+class RefCandidate:
+    """One per-occurrence ref decision (spec P): token + context + hint."""
+
+    token: str  # the occurrence text
+    hint: str  # suggested relative path
+    kind: str  # "broken" (path token, no file) | "bare" (basename of a companion)
+    context: str  # the line it occurs on
+    count: int  # occurrences
+
+
+def ref_candidates(text: str, companions: dict) -> list["RefCandidate"]:
+    """Extract per-occurrence ref candidates from SKILL.md text."""
+    out: list[RefCandidate] = []
+    lines = text.split("\n")
+
+    def _context(token: str) -> str:
+        for line in lines:
+            if token in line:
+                return line.strip()[:80]
+        return ""
+
+    # broken: path-looking tokens with no matching companion
+    for token in re.findall(r"(?<![\w./-])((?:[\w.-]+/)+[\w.-]+)", text):
+        if token not in companions:
+            out.append(RefCandidate(token, token, "broken", _context(token), text.count(token)))
+    # bare: companion basename used without its dir part
+    for relpath in companions:
+        if "/" not in relpath:
+            continue
+        basename = relpath.rsplit("/", 1)[-1]
+        if re.search(rf"(?<![\w/]){re.escape(basename)}(?![\w])", text):
+            out.append(RefCandidate(basename, relpath, "bare", _context(basename), len(re.findall(rf"(?<![\w/]){re.escape(basename)}(?![\w])", text))))
+    return out
+
+
 def _frontmatter_valid(ctx: Context) -> list[Issue]:
     if ctx.text is None:
         return []
