@@ -59,7 +59,8 @@ def _confirm_apply(title: str, body: str, extra: list[str] | None = None) -> boo
     console.print(Panel(body, title=title, border_style="yellow"))
     for line in extra or []:
         console.print(f"  {line}")
-    return Confirm.ask("Apply?", default=False)
+    ok = ask_confirm("Apply?")
+    return False if ok is None else ok
 
 
 # --- select_menu (ported from visref-canvas-builder) -----------------------
@@ -172,6 +173,82 @@ def select_menu(items, default=0):
     return chosen
 
 
+# --- escapable prompts (Esc = cancel/back at every step) ----------------------
+
+def _is_tty() -> bool:
+    try:
+        return sys.stdin.isatty()
+    except Exception:
+        return False
+
+
+def ask_text(prompt: str, default: str | None = None) -> str | None:
+    """Single-line input. Esc cancels (None). Non-TTY falls back to input()."""
+    if not _is_tty():
+        return input(f"{prompt}").strip() or default
+    import select as _select
+    import termios
+    import tty
+
+    console.print(prompt)
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    tty.setcbreak(fd)
+    buf: list[str] = []
+    try:
+        while True:
+            b = os.read(fd, 1)
+            if b == b"\x1b":
+                r, _, _ = _select.select([fd], [], [], 0.05)
+                if not r:
+                    return None  # lone Esc → cancel
+            elif b in (b"\r", b"\n"):
+                return "".join(buf) if buf else default
+            elif b == b"\x03":
+                raise KeyboardInterrupt
+            elif b in (b"\x7f", b"\x08"):
+                if buf:
+                    buf.pop()
+            else:
+                buf.append(b.decode("utf-8", errors="ignore"))
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
+def ask_confirm(prompt: str, default: bool = False) -> bool | None:
+    """y/n confirm. Esc cancels (None). Non-TTY falls back to rich Confirm."""
+    if not _is_tty():
+        from rich.prompt import Confirm
+
+        return Confirm.ask(prompt, default=default)
+    import select as _select
+    import termios
+    import tty
+
+    d = "y" if default else "n"
+    console.print(f"{prompt} [y/n] ({d})")
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    tty.setcbreak(fd)
+    try:
+        while True:
+            b = os.read(fd, 1)
+            if b in (b"y", b"Y"):
+                return True
+            if b in (b"n", b"N"):
+                return False
+            if b in (b"\r", b"\n"):
+                return default
+            if b == b"\x1b":
+                r, _, _ = _select.select([fd], [], [], 0.05)
+                if not r:
+                    return None  # lone Esc → cancel
+            if b == b"\x03":
+                raise KeyboardInterrupt
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
 # --- editor ------------------------------------------------------------------
 
 def _editor() -> list[str]:
@@ -193,8 +270,9 @@ def prompt_edit_until_clean(store: Store, name: str) -> None:
             console.print(f" [{style}]{i.check}[/{style}] {i.message}")
         from rich.prompt import Confirm
 
-        if Confirm.ask("Keep as-is (issues noted)?", default=False):
-            return
+        keep = ask_confirm("Keep as-is (issues noted)?")
+        if keep is None or keep:
+            return  # Esc/cancel or yes → stop the edit loop
         launch_editor(store.skill_dir(name) / "SKILL.md")
 
 
@@ -288,7 +366,11 @@ def _action_import(store, adapters, man, man_path, adopted: bool) -> None:
     if not fm.get("name"):
         from rich.prompt import Prompt
 
-        name_override = normalize_name(Prompt.ask("skill has no name — set it"))
+        given = ask_text("skill has no name — set it")
+        if given is None:
+            console.print("[dim]skipped[/dim]")
+            return
+        name_override = normalize_name(given)
         name = name_override
     existing = store.load(name)
     if existing:
@@ -357,8 +439,13 @@ def _action_export(store, adapters, man, man_path) -> None:
 def _action_rename(store, man, man_path) -> None:
     from rich.prompt import Prompt
 
-    old = normalize_name(Prompt.ask("from"))
-    new = normalize_name(Prompt.ask("to"))
+    old = ask_text("from")
+    if old is None:
+        return
+    new = ask_text("to")
+    if new is None:
+        return
+    old, new = normalize_name(old), normalize_name(new)
     issues = rename(store, man, old, new)
     _print_issues(issues)
     M.save(man_path, man)
@@ -369,21 +456,33 @@ def _action_delete(store, adapters, man, man_path) -> None:
     name = _pick_skill(names)
     if name is None:
         return
-    _, synced = delete_from_store(store, man, name)
+    # confirm BEFORE deleting (Esc = cancel everything)
+    synced = [
+        t for t in man["skills"].get(name, {}).get("targets", {})
+        if M.target_id(man, name, t)
+    ]
+    del_targets = False
     if synced:
-        from rich.prompt import Confirm
-
         console.print(f"[yellow]also delete from: {', '.join(synced)}[/yellow]")
-        if Confirm.ask("Delete from targets?", default=False):
-            for tid in synced:
-                adapters.get(tid) and adapters[tid].delete_skill(M.target_id(man, name, tid) or name)
+        r = ask_confirm("Delete from targets too?")
+        if r is None:
+            console.print("[dim]cancelled[/dim]")
+            return
+        del_targets = r
+    delete_from_store(store, man, name)
+    if del_targets:
+        for tid in synced:
+            adapters.get(tid) and adapters[tid].delete_skill(M.target_id(man, name, tid) or name)
     M.save(man_path, man)
 
 
 def _action_create(store) -> None:
     from rich.prompt import Prompt
 
-    name = normalize_name(Prompt.ask("name"))
+    name = ask_text("name")
+    if name is None:
+        return
+    name = normalize_name(name)
     path = store.create(name)
     launch_editor(path)
     prompt_edit_until_clean(store, name)
@@ -453,7 +552,10 @@ def _action_view(store) -> None:
         return
     d = store.skill_dir(name)
     files = sorted(p.relative_to(d).as_posix() for p in d.rglob("*") if p.is_file())
-    f = Prompt.ask("file", choices=files)
+    console.print(f"[dim]{', '.join(files)}[/dim]")
+    f = ask_text("file")
+    if f is None or f not in files:
+        return
     console.print(Panel((d / f).read_text(encoding="utf-8", errors="replace"), title=f))
 
 
@@ -472,7 +574,10 @@ def run(config_path: str | None = None) -> None:
             "Fill in your targets (skills dirs, OWUI url + api_key).",
             title="first run",
         ))
-        if Confirm.ask("Open config now? ($EDITOR)", default=True):
+        open_now = ask_confirm("Open config now? ($EDITOR)", default=True)
+        if open_now is None:
+            open_now = False
+        if open_now:
             launch_editor(path)
             config, path = load_config(config_path)
     store = Store(Path(config["store"]["path"]).expanduser(), config.get("ignore"))
