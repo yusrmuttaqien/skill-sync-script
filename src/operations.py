@@ -18,14 +18,29 @@ from .canonical import bundle_from_text, canonical_text, parse_skill
 from .checks import Context, Issue, RENAME_DELETE, run_checks
 from .name import normalize_name
 from .store import Store
-from .sync import import_skill
+from .sync import _is_filesystem, import_skill
+from .links import to_absolute
 
 
 def adopt(store: Store, adapter: Adapter, man: dict, name: str) -> list:
-    """Pull a target skill into the store and mark it adopted."""
+    """Pull a target skill into the store, mark adopted, and write the
+    normalized store version back to the target (store = single copy)."""
     issues = import_skill(store, adapter, man, name)
     if not any(i.severity == "error" for i in issues):
-        M.set_target(man, name, adapter.id, M.target_id(man, name, adapter.id) or name, adopted=True)
+        bundle = store.load(name)
+        tid = M.target_id(man, name, adapter.id) or name
+        text = canonical_text(bundle)
+        if _is_filesystem(adapter):
+            text = to_absolute(text, store.skill_dir(name), bundle.companions)
+        adapter.write_skill(tid, text, bundle.companions)
+        # record what the target now physically holds (drift baseline)
+        ttext, tcomps, _ = adapter.read_skill(tid)
+        if isinstance(ttext, bytes):
+            ttext = ttext.decode("utf-8")
+        M.set_target(
+            man, name, adapter.id, tid, adopted=True,
+            blobs={"SKILL.md": ttext.encode("utf-8"), **tcomps},
+        )
     return issues
 
 
