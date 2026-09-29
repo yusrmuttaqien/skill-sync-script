@@ -215,8 +215,9 @@ def ask_text(prompt: str, default: str | None = None) -> str | None:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def ask_confirm(prompt: str, default: bool = False) -> bool | None:
-    """y/n confirm. Esc cancels (None). Non-TTY falls back to rich Confirm."""
+def ask_confirm(prompt: str, default: bool = True) -> bool | None:
+    """y/n confirm — default in upper case (e.g. `[Y/n]`), Esc cancels (None).
+    Non-TTY falls back to rich Confirm."""
     if not _is_tty():
         from rich.prompt import Confirm
 
@@ -225,8 +226,8 @@ def ask_confirm(prompt: str, default: bool = False) -> bool | None:
     import termios
     import tty
 
-    d = "y" if default else "n"
-    console.print(f"{prompt} [y/n] ({d})")
+    y, n = ("Y", "n") if default else ("y", "N")
+    console.print(f"{prompt} [{y}/{n}]")
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     tty.setcbreak(fd)
@@ -596,7 +597,7 @@ def _action_delete(store, adapters, man, man_path) -> None:
     del_targets = False
     if synced:
         console.print(f"[yellow]also delete from: {', '.join(synced)}[/yellow]")
-        r = ask_confirm("Delete from targets too?")
+        r = ask_confirm("Delete from targets too?", default=False)
         if r is None:
             console.print("[dim]cancelled[/dim]")
             return
