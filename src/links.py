@@ -37,14 +37,23 @@ def to_absolute(text: str, skill_dir: Path, companions: dict) -> str:
     return _TOKEN.sub(repl, text)
 
 
-def to_relative(text: str, skill_dir: Path) -> str:
-    """Rewrite absolute store paths under skill_dir → relative refs."""
-    prefix = skill_dir.as_posix() + "/"
+def to_relative(text: str, skill_dir: Path, extra_prefixes: list[str] = ()) -> str:
+    """Rewrite absolute store paths under skill_dir (or an extra prefix, e.g.
+    the old store location after a move) → relative refs."""
+    prefixes = [skill_dir.as_posix() + "/"] + [p + "/" for p in extra_prefixes]
 
     def repl(m):
         tok = m.group(1)
-        if tok.startswith(prefix) and not _url_context(text, m.start()):
-            return tok[len(prefix):]
+        for p in prefixes:
+            if tok.startswith(p) and not _url_context(text, m.start()):
+                return tok[len(p):]
         return tok
 
     return _TOKEN.sub(repl, text)
+
+
+def old_skill_prefix(text: str, name: str) -> str | None:
+    """The store skill-dir prefix embedded in a target text (may be stale
+    after a store move). Returns e.g. `/old/root/store/skills/<name>`."""
+    m = re.search(r"(/[\w.\-]+(?:/[\w.\-]+)*?/skills/" + re.escape(name) + r")/", text)
+    return m.group(1) if m else None

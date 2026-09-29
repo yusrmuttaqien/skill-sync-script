@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 from . import manifest as M
 from .adapter import Adapter
-from .links import to_relative
+from .links import old_skill_prefix, to_relative
 from .normalize import normalize_text
 from .store import Store
 
@@ -48,19 +48,24 @@ class SkillStatus:
         return "target-only"
 
 
-def _drift(adapter: Adapter, tid: str, blobs: dict[str, bytes], skill_dir) -> str:
+def _drift(adapter: Adapter, tid: str, blobs: dict[str, bytes], skill_dir, name: str) -> str:
     """normalize-then-exact-compare: target SKILL.md vs last-synced blob.
 
-    Returns "in-sync", "changed", or "paths-stale" (text differs only in the
-    absolute store prefix → the store moved, refs need repointing).
+    Returns "in-sync", "changed", or "paths-stale" (refs point at a store
+    root that isn't the current one → the store moved, refs need repointing).
     """
     text, companions, _ = adapter.read_skill(tid)
     if isinstance(text, bytes):
         text = text.decode("utf-8")
+    blob_text = blobs.get("SKILL.md", b"").decode("utf-8", "replace")
+    # store moved: target (and/or the blob) still embed the old root
+    old = old_skill_prefix(text, name)
+    if old and old != skill_dir.as_posix() and old + "/" in blob_text:
+        return "paths-stale"
     target_text = normalize_text(text).encode("utf-8")
     if target_text != blobs.get("SKILL.md"):
-        rel_target = to_relative(text, skill_dir)
-        rel_blob = to_relative(blobs.get("SKILL.md", b"").decode("utf-8", "replace"), skill_dir)
+        rel_target = to_relative(text, skill_dir, [old] if old else [])
+        rel_blob = to_relative(blob_text, skill_dir)
         if normalize_text(rel_target).encode("utf-8") == normalize_text(rel_blob).encode("utf-8"):
             return "paths-stale"
         return "changed"
@@ -101,7 +106,7 @@ def compute_status(store: Store, adapters: dict[str, Adapter], man: dict) -> lis
                     state = "unmanaged"
                 else:
                     try:
-                        state = _drift(adapters[tid], lst[name], blobs, store.skill_dir(name))
+                        state = _drift(adapters[tid], lst[name], blobs, store.skill_dir(name), name)
                     except Exception:
                         state = "error"
             elif in_target:

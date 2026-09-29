@@ -676,7 +676,7 @@ def _action_scan(store, adapters) -> None:
 
 def _action_repoint(store, adapters, man) -> None:
     """L: rewrite stale absolute store paths to the current store location."""
-    from .links import to_absolute, to_relative
+    from .links import old_skill_prefix, to_absolute, to_relative
 
     names = [n for n in man["skills"] if n in store.list_skills()]
     name = _pick_skill(names)
@@ -695,7 +695,9 @@ def _action_repoint(store, adapters, man) -> None:
         text = text.decode("utf-8")
     from .normalize import normalize_text
 
-    text = to_relative(normalize_text(text), store.skill_dir(name))
+    blob_text = (M.get_blobs(man, name, tid) or {}).get("SKILL.md", b"").decode("utf-8", "replace")
+    old = old_skill_prefix(text, name) or old_skill_prefix(blob_text, name)
+    text = to_relative(normalize_text(text), store.skill_dir(name), [old] if old else [])
     text = to_absolute(text, store.skill_dir(name), comps)
     adapter.write_skill(tid_id, text, comps)
     ttext, tcomps, _ = adapter.read_skill(tid_id)
