@@ -117,6 +117,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 **Lessons (TUI)**:
 - Page-based flow (render → select_menu → action → back) reads far better than a bare key-prompt loop
 
+**Changes (Obsidian format)**:
+- `src/obsidian.py` — `ObsidianAdapter`: note = own frontmatter (`tags:` from config `default_tags`) + entire skill (frontmatter+body) inside an adaptive backtick fence `max(3, longest_run+1)`; unwrap on read
+- `src/adapter.py` — obsidian → `ObsidianAdapter`
+**Lessons (Obsidian)**:
+- Fence length must adapt to the content's own fences (start 3, +1 per nest) or the skill's code blocks leak
+- Verified against the real `context-restore` note in the vault
+
 **Task (orig)**: Live-target verification — fix OWUI + Obsidian scanning
 **Changes**:
 - `src/openwebui.py` — rewritten to the real API (spec was right, code had drifted): `/api/v1/skills/...` routes, client-provided `id` (required in SkillForm), POST update (not PUT), no `files` field (content-only skills)
