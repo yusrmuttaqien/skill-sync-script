@@ -35,15 +35,16 @@ class Adapter:
         raise NotImplementedError
 
 
-def make_adapter(target_id: str) -> Adapter:
-    cfg = _cfg.load()
-    if target_id == "opencode":
-        from .opencode import OpenCodeAdapter
+def make_adapter(target_name: str, cfg: dict) -> Adapter:
+    """Build the adapter for a named target from config."""
+    t = cfg["targets"][target_name]
+    ttype = t.get("type", target_name)
+    if ttype in ("pi", "obsidian", "filesystem"):
+        from .filesystem import FilesystemAdapter
 
-        return OpenCodeAdapter(Path(cfg.get("targets", {}).get("opencode", {}).get("root", "")))
-    if target_id == "openwebui":
+        return FilesystemAdapter(Path(t["skills_dir"]), id=target_name)
+    if ttype == "openwebui":
         from .openwebui import OpenWebUIAdapter
 
-        t = cfg.get("targets", {}).get("openwebui", {})
-        return OpenWebUIAdapter(t.get("base_url", ""), t.get("api_key", ""))
-    raise ValueError(f"unknown target: {target_id}")
+        return OpenWebUIAdapter(t.get("url", ""), t.get("api_key", ""))
+    raise ValueError(f"unknown target type: {ttype}")

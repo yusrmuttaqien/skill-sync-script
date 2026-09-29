@@ -57,10 +57,14 @@ class OpenWebUIAdapter(Adapter):
         )
         try:
             with urllib.request.urlopen(req) as resp:
-                return json.loads(resp.read().decode())
+                body = resp.read().decode()
         except urllib.error.HTTPError as e:
             detail = e.read().decode(errors="replace")
             raise OWUIError(e.code, detail) from e
+        try:
+            return json.loads(body)
+        except json.JSONDecodeError:
+            raise OWUIError(0, f"non-JSON response: {body[:120]!r}") from None
 
     # --- list / read ------------------------------------------------------
 

@@ -1,4 +1,4 @@
-"""OpenCode adapter — filesystem target.
+"""Filesystem adapter — any directory-based target (pi, obsidian, ...).
 
 Spec: skills live in <root>/<name>/SKILL.md (+ companions).
 Create: dir + minimal SKILL.md, idempotent.
@@ -19,11 +19,10 @@ description:
 """
 
 
-class OpenCodeAdapter(Adapter):
-    id = "opencode"
-
-    def __init__(self, root: Path):
-        self.root = Path(root)
+class FilesystemAdapter(Adapter):
+    def __init__(self, root: Path, id: str = "filesystem"):
+        self.id = id
+        self.root = Path(root).expanduser()
 
     def _dir(self, target_id: str) -> Path:
         return self.root / target_id

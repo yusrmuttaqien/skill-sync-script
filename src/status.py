@@ -45,10 +45,14 @@ class SkillStatus:
 
 
 def compute_status(store: Store, adapters: dict[str, Adapter], man: dict) -> list[SkillStatus]:
-    # name → target_id per target (from the targets themselves)
+    # name → target_id per target (from the targets themselves);
+    # one unreachable target must not crash the whole status
     target_lists: dict[str, dict[str, str]] = {}
     for tid, adapter in adapters.items():
-        target_lists[tid] = adapter.list_skills()
+        try:
+            target_lists[tid] = adapter.list_skills()
+        except Exception:
+            target_lists[tid] = {}
 
     names: set[str] = set(store.list_skills())
     for tid, lst in target_lists.items():

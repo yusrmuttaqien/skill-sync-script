@@ -1,7 +1,6 @@
 """skillsync entry point.
 
-Phase 0: config loading + generate-config. The TUI lands in Phase 7;
-until then the entry point prints a plain-text config summary.
+Default (no flags): the TUI. Flags: --generate-config, --config, --version.
 """
 
 from __future__ import annotations
@@ -40,12 +39,9 @@ def main() -> int:
         print(generate_config_text())
         return 0
 
-    config, path = load_config(args.config)
-    print(f"skillsync {__version__}")
-    print(f"config: {path}")
-    print(f"store:  {config['store']['path']}")
-    for name, target in config["targets"].items():
-        print(f"target: {name} ({target['type']})")
+    from .tui import run as tui_run
+
+    tui_run(args.config)
     return 0
 
 
