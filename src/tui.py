@@ -270,6 +270,16 @@ def _action_import(store, adapters, man, man_path, adopted: bool) -> None:
     ttext, tcomps, _ = adapter.read_skill(tid_id)
     if isinstance(ttext, bytes):
         ttext = ttext.decode("utf-8")
+    # O: nameless/malformed → set name now
+    name_override = None
+    from .canonical import parse_skill
+
+    fm, _ = parse_skill(ttext)
+    if not fm.get("name"):
+        from rich.prompt import Prompt
+
+        name_override = normalize_name(Prompt.ask("skill has no name — set it"))
+        name = name_override
     existing = store.load(name)
     if existing:
         ok = _confirm_apply(
@@ -291,7 +301,7 @@ def _action_import(store, adapters, man, man_path, adopted: bool) -> None:
     issues = (
         adopt(store, adapter, man, name)
         if adopted
-        else import_skill(store, adapter, man, name, target_id=tid_id)
+        else import_skill(store, adapter, man, name, target_id=tid_id, name_override=name_override)
     )
     _print_issues(issues)
     M.save(man_path, man)
@@ -379,12 +389,82 @@ def _action_scan(store, adapters) -> None:
         unimp = adapter.list_unimportable()
         if unimp:
             console.print(f"[dim]{tid}: unimportable (no SKILL.md): {', '.join(unimp)}[/dim]")
+        full = adapter.list_skills_full()
+        counts: dict[str, int] = {}
+        for s in full:
+            counts[s["name"]] = counts.get(s["name"], 0) + 1
+        dups = sorted(n for n, c in counts.items() if c > 1)
+        if dups:
+            console.print(f"[red]{tid}: duplicate names: {', '.join(dups)}[/red]")
+
+
+def _action_repoint(store, adapters, man) -> None:
+    """L: rewrite stale absolute store paths to the current store location."""
+    from .links import to_absolute, to_relative
+
+    names = [n for n in man["skills"] if n in store.list_skills()]
+    name = _pick_skill(names)
+    if name is None:
+        return
+    managed = [t for t in man["skills"].get(name, {}).get("targets", {})
+               if M.target_id(man, name, t) and t in adapters]
+    tid = select_menu([(t, t, "") for t in managed]) if managed else None
+    if tid is None:
+        console.print("[dim]not managed on any target[/dim]")
+        return
+    adapter = adapters[tid]
+    tid_id = M.target_id(man, name, tid)
+    text, comps, _ = adapter.read_skill(tid_id)
+    if isinstance(text, bytes):
+        text = text.decode("utf-8")
+    from .normalize import normalize_text
+
+    text = to_relative(normalize_text(text), store.skill_dir(name))
+    text = to_absolute(text, store.skill_dir(name), comps)
+    adapter.write_skill(tid_id, text, comps)
+    ttext, tcomps, _ = adapter.read_skill(tid_id)
+    if isinstance(ttext, bytes):
+        ttext = ttext.decode("utf-8")
+    M.set_target(
+        man, name, tid, tid_id,
+        adopted=M.is_adopted(man, name, tid),
+        blobs={"SKILL.md": ttext.encode("utf-8"), **tcomps},
+    )
+    console.print(f"[green]repointed {name} on {tid}[/green]")
+
+
+def _action_view(store) -> None:
+    """N: store browser — view any file."""
+    from rich.prompt import Prompt
+
+    names = store.list_skills()
+    name = _pick_skill(names)
+    if name is None:
+        return
+    d = store.skill_dir(name)
+    files = sorted(p.relative_to(d).as_posix() for p in d.rglob("*") if p.is_file())
+    f = Prompt.ask("file", choices=files)
+    console.print(Panel((d / f).read_text(encoding="utf-8", errors="replace"), title=f))
 
 
 # --- main loop -----------------------------------------------------------------
 
 def run(config_path: str | None = None) -> None:
-    config, _ = load_config(config_path)
+    from .config import resolve_config_path
+
+    path = resolve_config_path(config_path)
+    first_run = not path.exists()
+    config, path = load_config(config_path)
+    if first_run:
+        # Q: onboarding — fill targets before the first scan
+        console.print(Panel(
+            f"Config generated with defaults at {path}.\n"
+            "Fill in your targets (skills dirs, OWUI url + api_key).",
+            title="first run",
+        ))
+        if Confirm.ask("Open config now? ($EDITOR)", default=True):
+            launch_editor(path)
+            config, path = load_config(config_path)
     store = Store(Path(config["store"]["path"]).expanduser(), config.get("ignore"))
     man_path = Path(config["store"]["path"]).expanduser() / "sync.json"
     man = M.load(man_path)
@@ -404,9 +484,11 @@ def run(config_path: str | None = None) -> None:
             ("e", "Export", "store \u2192 target"),
             ("a", "Adopt", "import + mark adopted"),
             ("r", "Rename", "store skill"),
+            ("p", "Repoint", "fix stale absolute store paths"),
             ("d", "Delete", "from store"),
             ("c", "Create", "new skill (template + $EDITOR)"),
             ("s", "Scan", "run checks on store"),
+            ("v", "View", "store browser"),
             ("q", "Quit", ""),
         ])
         if choice is None:
@@ -429,5 +511,9 @@ def run(config_path: str | None = None) -> None:
                 _action_create(store)
             elif choice == "s":
                 _action_scan(store, adapters)
+            elif choice == "p":
+                _action_repoint(store, adapters, man)
+            elif choice == "v":
+                _action_view(store)
         except KeyboardInterrupt:
             console.print("[yellow]Interrupted.[/yellow]")

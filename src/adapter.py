@@ -70,7 +70,8 @@ def make_adapter(target_name: str, cfg: dict) -> Adapter:
         return OpenWebUIAdapter(
             t.get("url", ""),
             t.get("api_key", ""),
-            inline_max_bytes=t.get("inline_max_bytes", 65536),
+            inline_max_bytes=cfg.get("export", {}).get("inline_threshold_bytes", 65536),
             store_path=Path(cfg["store"]["path"]).expanduser(),
+            hostname=cfg.get("system", {}).get("hostname"),
         )
     raise ValueError(f"unknown target type: {ttype}")

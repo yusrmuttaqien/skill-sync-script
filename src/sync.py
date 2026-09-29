@@ -36,7 +36,7 @@ def _target_id(adapter: Adapter, man: dict, name: str, target_id: str | None = N
 
 def import_skill(
     store: Store, adapter: Adapter, man: dict, name: str, strict: bool = True,
-    target_id: str | None = None,
+    target_id: str | None = None, name_override: str | None = None,
 ) -> list:
     """Pull one skill from target into the store. Returns issues."""
     tid = _target_id(adapter, man, name, target_id)
@@ -47,6 +47,9 @@ def import_skill(
     if _is_filesystem(adapter):
         text = to_relative(text, store.skill_dir(name))
     bundle = bundle_from_text(name, text, companions, modes)
+    if name_override:
+        bundle.frontmatter["name"] = name_override
+        text = canonical_text(bundle)
     # exact-mirror rule: keep store companions still referenced by the new
     # SKILL.md; everything else is dropped (store.save mirrors the bundle).
     existing = store.load(name)

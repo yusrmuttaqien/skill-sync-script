@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 
 from .canonical import Bundle, canonical_text, parse_skill
-from .checks import Context, POST_EDIT, run_checks
+from .checks import Context, Issue, POST_EDIT, run_checks
 from .name import normalize_name
 
 TEMPLATE = """---
@@ -138,4 +138,10 @@ class Store:
 
     def post_edit(self, name: str, **extra) -> list:
         """Run the full store-level suite on editor close."""
-        return run_checks(POST_EDIT, self.context_for(name, **extra))
+        issues = run_checks(POST_EDIT, self.context_for(name, **extra))
+        # R: symlinks are flattened to regular files — say so
+        d = self.skill_dir(name)
+        for p in sorted(d.rglob("*")):
+            if p.is_symlink() and p.is_file() and p.name != "SKILL.md":
+                issues.append(Issue("symlink_flattened", "warn", f"symlink flattened to regular file: {p.relative_to(d).as_posix()}"))
+        return issues

@@ -38,7 +38,7 @@ _MARKER = re.compile(
 )
 
 
-def _flatten(text: str, companions: dict[str, bytes], threshold: int, store_path: Path | None) -> str:
+def _flatten(text: str, companions: dict[str, bytes], threshold: int, store_path: Path | None, hostname: str | None = None) -> str:
     parts = [text.rstrip("\n")]
     for rel in sorted(companions):
         data = companions[rel]
@@ -51,7 +51,7 @@ def _flatten(text: str, companions: dict[str, bytes], threshold: int, store_path
                     f"<!-- file:{rel} encoding:base64 -->\n{base64.b64encode(data).decode()}\n<!-- /file -->"
                 )
         else:
-            host = socket.gethostname()
+            host = hostname or socket.gethostname()
             loc = f"{store_path / rel}" if store_path else "<store>"
             parts.append(
                 f"<!-- file:{rel} ref:external -->\n"
@@ -86,7 +86,7 @@ class OWUIError(Exception):
 class OpenWebUIAdapter(Adapter):
     id = "openwebui"
 
-    def __init__(self, base_url: str, api_key: str, inline_max_bytes: int = 65536, store_path: Path | None = None):
+    def __init__(self, base_url: str, api_key: str, inline_max_bytes: int = 65536, store_path: Path | None = None, hostname: str | None = None):
         base = base_url.rstrip("/")
         if not base.startswith(("http://", "https://")):
             base = "http://" + base
@@ -94,6 +94,7 @@ class OpenWebUIAdapter(Adapter):
         self.key = api_key
         self.inline_max_bytes = inline_max_bytes
         self.store_path = store_path
+        self.hostname = hostname
 
     def _req(self, method: str, path: str, body: dict | None = None):
         data = json.dumps(body).encode() if body is not None else None
@@ -157,7 +158,9 @@ class OpenWebUIAdapter(Adapter):
         }
         if fm.get("description"):
             body["description"] = str(fm["description"])
-        body["content"] = _flatten(text, companions, self.inline_max_bytes, self.store_path)
+        body["content"] = _flatten(
+            text, companions, self.inline_max_bytes, self.store_path, self.hostname
+        )
         self._req("POST", f"/api/v1/skills/id/{target_id}/update", body)
 
     def delete_skill(self, target_id: str) -> None:
