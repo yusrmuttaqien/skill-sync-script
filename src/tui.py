@@ -58,7 +58,7 @@ def render_status(console: Console, store: Store, adapters: dict, man: dict) -> 
     for r in rows:
         cells = [r.name, "[green]✓[/green]" if r.in_store else "[dim]—[/dim]"]
         for t in r.targets:
-            cells.append(_state_mark(r.in_store, t.in_target and t.in_manifest))
+            cells.append(_state_mark(r.in_store, t.in_target))
         table.add_row(*cells)
     console.clear()
     console.print(table)

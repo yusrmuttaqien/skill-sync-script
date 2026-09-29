@@ -1,19 +1,24 @@
-"""OpenWebUI adapter — HTTP target (official /v1/skills API).
+"""OpenWebUI adapter — HTTP target.
 
-Spec: API key intentionally created in OWUI; create via POST (409 → find id);
-delete via DELETE /v1/skills/{id}; status via GET /v1/skills/{id}/status.
-files content: text, base64 fallback for binary.
+Real API (verified via /openapi.json on the live instance):
+- GET    /api/v1/skills/                 → [SkillUserResponse]
+- POST   /api/v1/skills/create           → body SkillForm (id required, client-chosen)
+- GET    /api/v1/skills/id/{id}
+- POST   /api/v1/skills/id/{id}/update   → body SkillForm (POST, not PUT)
+- DELETE /api/v1/skills/id/{id}/delete   → bool
+
+No companion files in this API — skills are a single `content` string.
+Companions on export are NOT sent (inline-flatten is the deferred bridge).
 """
 
 from __future__ import annotations
 
-import base64
 import json
-import re
 import urllib.error
 import urllib.request
 
 from .adapter import Adapter
+from .canonical import parse_skill
 from .name import normalize_name
 
 
@@ -22,19 +27,6 @@ class OWUIError(Exception):
         self.status = status
         self.detail = detail
         super().__init__(f"OWUI {status}: {detail}")
-
-
-def _b64(s: str) -> str:
-    return base64.b64encode(s.encode()).decode()
-
-
-def _decode(content: str) -> bytes:
-    """OWUI file content: we always write base64, so try base64 first;
-    non-b64 text (e.g. created by other clients) falls back to raw UTF-8."""
-    try:
-        return base64.b64decode(content, validate=True)
-    except Exception:
-        return str(content).encode("utf-8")
 
 
 class OpenWebUIAdapter(Adapter):
@@ -47,7 +39,7 @@ class OpenWebUIAdapter(Adapter):
         self.base = base
         self.key = api_key
 
-    def _req(self, method: str, path: str, body: dict | None = None) -> dict:
+    def _req(self, method: str, path: str, body: dict | None = None):
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(
             f"{self.base}{path}",
@@ -57,51 +49,49 @@ class OpenWebUIAdapter(Adapter):
         )
         try:
             with urllib.request.urlopen(req) as resp:
-                body = resp.read().decode()
+                raw = resp.read().decode()
         except urllib.error.HTTPError as e:
             detail = e.read().decode(errors="replace")
             raise OWUIError(e.code, detail) from e
         try:
-            return json.loads(body)
+            return json.loads(raw)
         except json.JSONDecodeError:
-            raise OWUIError(0, f"non-JSON response: {body[:120]!r}") from None
+            raise OWUIError(0, f"non-JSON response: {raw[:120]!r}") from None
 
     # --- list / read ------------------------------------------------------
 
     def list_skills(self) -> dict[str, str]:
-        r = self._req("GET", "/v1/skills")
-        return {normalize_name(s["name"]): s["id"] for s in r.get("data", [])}
+        r = self._req("GET", "/api/v1/skills/")
+        return {normalize_name(s["name"]): s["id"] for s in r}
 
     def read_skill(self, target_id: str) -> tuple[bytes, dict[str, bytes], dict[str, int]]:
-        r = self._req("GET", f"/v1/skills/{target_id}")
-        d = r["data"]
-        text = d["content"].encode("utf-8")
-        companions = {f["path"]: _decode(f["content"]) for f in d.get("files", [])}
-        return text, companions, {}
+        d = self._req("GET", f"/api/v1/skills/id/{target_id}")
+        return d["content"].encode("utf-8"), {}, {}
 
     # --- write / delete / create -------------------------------------------
 
     def write_skill(self, target_id: str, text: str, companions: dict[str, bytes]) -> None:
-        files = [{"path": p, "content": base64.b64encode(data).decode()} for p, data in companions.items()]
-        self._req("PUT", f"/v1/skills/{target_id}", {"content": text, "files": files})
+        fm, _ = parse_skill(text)
+        name = fm.get("name") or target_id
+        body = {
+            "id": target_id,
+            "name": name,
+            "content": text,
+            "meta": {"tags": []},
+            "is_active": True,
+        }
+        if fm.get("description"):
+            body["description"] = str(fm["description"])
+        self._req("POST", f"/api/v1/skills/id/{target_id}/update", body)
 
     def delete_skill(self, target_id: str) -> None:
-        self._req("DELETE", f"/v1/skills/{target_id}")
+        self._req("DELETE", f"/api/v1/skills/id/{target_id}/delete")
 
     def create_skill(self, name: str) -> str:
         name = normalize_name(name)
-        try:
-            r = self._req("POST", "/v1/skills", {"name": name, "description": "", "content": "", "files": []})
-            return r["data"]["id"]
-        except OWUIError as e:
-            if e.status == 409:  # already exists → find its id
-                for n, tid in self.list_skills().items():
-                    if n == name:
-                        return tid
-            raise
-
-    # --- status (for the status command) -----------------------------------
-
-    def status(self, target_id: str) -> str:
-        r = self._req("GET", f"/v1/skills/{target_id}/status")
-        return r["data"].get("status", "unknown")
+        self._req(
+            "POST",
+            "/api/v1/skills/create",
+            {"id": name, "name": name, "content": "", "meta": {"tags": []}, "is_active": True},
+        )
+        return name

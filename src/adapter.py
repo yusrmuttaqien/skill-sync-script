@@ -42,7 +42,8 @@ def make_adapter(target_name: str, cfg: dict) -> Adapter:
     if ttype in ("pi", "obsidian", "filesystem"):
         from .filesystem import FilesystemAdapter
 
-        return FilesystemAdapter(Path(t["skills_dir"]), id=target_name)
+        layout = "flat" if ttype == "obsidian" else "dir"
+        return FilesystemAdapter(Path(t["skills_dir"]), id=target_name, layout=layout)
     if ttype == "openwebui":
         from .openwebui import OpenWebUIAdapter
 

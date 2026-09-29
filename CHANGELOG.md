@@ -109,3 +109,15 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 - Adapter reads return bytes; sync layer tolerates str (test fakes + leniency)
 - One unreachable target must not crash status — isolate `list_skills()` failures per target
 - Template example refs must not look like real paths (`scripts/<file>.sh`) or the ref scan flags the template itself
+
+## [2026-09-29] — Session 7
+**Task**: Live-target verification — fix OWUI + Obsidian scanning
+**Changes**:
+- `src/openwebui.py` — rewritten to the real API (spec was right, code had drifted): `/api/v1/skills/...` routes, client-provided `id` (required in SkillForm), POST update (not PUT), no `files` field (content-only skills)
+- `src/filesystem.py` — `layout` param: `dir` (pi) vs `flat` (obsidian: one `<name>.md` per skill, no companions)
+- `src/adapter.py` — obsidian → flat layout
+- `src/tui.py` — target columns show target presence (was: presence AND manifest, so nothing showed pre-sync)
+**Lessons**:
+- Verify against the live API before trusting the implementation — the spec had been verified in Session 1, but the Phase 3 code re-guessed the routes from memory
+- Obsidian skills are flat `.md` files, not `<name>/SKILL.md` dirs — layout is a per-target property, not a constant
+- OWUI has no companion-file concept in this API; inline-flatten (deferred) is the only bridge for companions
