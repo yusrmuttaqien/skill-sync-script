@@ -80,8 +80,10 @@ class Store:
 
     # --- read / write ----------------------------------------------------
 
-    def load(self, name: str) -> Bundle:
+    def load(self, name: str) -> Bundle | None:
         d = self.skill_dir(name)
+        if not (d / "SKILL.md").exists():
+            return None
         text = (d / "SKILL.md").read_text(encoding="utf-8")
         companions, modes = self.read_companions(d)
         from .canonical import bundle_from_text
@@ -99,6 +101,10 @@ class Store:
             mode = bundle.modes.get(rel)
             if mode is not None:
                 os.chmod(path, mode)
+        # mirror: drop files no longer in the bundle (stale companions)
+        for path in d.rglob("*"):
+            if path.is_file() and path.relative_to(d).as_posix() not in bundle.companions and path.name != "SKILL.md":
+                path.unlink()
 
     # --- create (template before editor) ----------------------------------
 

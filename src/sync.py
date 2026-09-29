@@ -37,6 +37,15 @@ def import_skill(store: Store, adapter: Adapter, man: dict, name: str, strict: b
         text = text.decode("utf-8")
     text = normalize_text(text)
     bundle = bundle_from_text(name, text, companions, modes)
+    # exact-mirror rule: keep store companions still referenced by the new
+    # SKILL.md; everything else is dropped (store.save mirrors the bundle).
+    existing = store.load(name)
+    if existing:
+        for rel, data in existing.companions.items():
+            if rel not in bundle.companions and rel in text:
+                bundle.companions[rel] = data
+                if rel in existing.modes:
+                    bundle.modes[rel] = existing.modes[rel]
     ctx = Context(text=text, bundle=bundle, dir_name=name)
     issues = run_checks(IMPORT, ctx)
     if strict and any(i.severity == "error" for i in issues):
