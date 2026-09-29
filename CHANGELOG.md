@@ -66,19 +66,36 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
 **K. ✅ (partial) Status states** — `+ to-add / ~ changed / ! offline / ! error` live;
    `~ paths-stale` needs D, `~ orphan` needs the scan wiring (R).
 
-**L. Repoint action** — fix stale absolute paths (auto-suggested by status; needs D).
-**M. Batch in TUI** — batch import/export of a selected set; managed skills
-   only as sources.
-**N. Store browser** — view files (beyond edit).
-**O. Nameless/malformed import prompt** — "set name (and description) now?" inline.
-**P. Bare-filename candidates** — per-occurrence decision (list + context +
-   checkbox), today warn-only.
-**Q. Onboarding** — first-run pass: fill targets → first scan.
-**R. Minor** — symlink-flattening warning; `! offline`/`! error` per-target
-   display (failures isolated but invisible); duplicate_names check not wired
-   to a scan action (target_names context unused).
+**L. ✅ Repoint action** — `p` in TUI: rel→abs rewrite to current store path; status `~ paths-stale` (text differs only in store prefix).
+**M. ⏸ Batch in TUI** — `batch()` exists in operations.py; no TUI multi-select
+   yet (needs a multi-select interaction). Deferred.
+**N. ✅ Store browser** — `v` in TUI: pick skill → pick file → view.
+**O. ✅ Nameless import prompt** — inline "set it" prompt; store name follows the override.
+**P. ⏸ Bare-filename candidates** — per-occurrence decision (list + context +
+   checkbox). Today warn-only (companion_ref_scan). Deferred.
+**Q. ✅ Onboarding** — first run: panel + $EDITOR on the generated config, then reload.
+**R. ✅ Minor** — symlink-flattened warning in post_edit; `! offline`/`! error`
+   cells; duplicate names flagged in scan. (duplicate_names check itself stays
+   store-level; target dups surfaced via list_skills_full in scan.)
 
 ## Log
+
+## [2026-09-29] — Session 9: backlog A–R sweep
+**Task**: Close the draft-vs-implementation gaps (A–R)
+**Changes**:
+- **A+K** manifest blobs (SKILL.md + base64 companions) → drift detection; status states `in-sync/changed/unmanaged/to-add/offline/error/absent` → TUI ✓ ~ + ! —
+- **B** diff preview before apply (import/export; unified diff + companion delta; no in-TUI undo — the diff is the guard)
+- **C** exact-mirror companion set: referenced store companions kept, stale dropped (`store.save` mirrors the bundle)
+- **D** link rewrite engine (`links.py`): rel→abs on export, abs→rel on import; token-boundary, URL/qualified skip
+- **E** OWUI inline flatten: `<!-- file:<rel> [encoding:base64] [ref:external] -->` markers, lossless round-trip, large → hostname/path guide
+- **F** adopt write-back: normalized store version becomes the target copy
+- **G** obsidian wrapper pass-through (keeps `status: fix` etc.)
+- **H** OWUI put semantics: `list_skills_full` (dups/inactive), rename = recreate (POST /create + DELETE /old)
+- **I+J** unimportable folders flagged; obsidian skill = last top-level fence starts with frontmatter
+- **L** repoint action + `~ paths-stale` state (store moved)
+- **N** store browser (`v`); **O** nameless import prompt; **Q** first-run onboarding; **R** symlink warning, dup names in scan
+- Deferred: **M** batch multi-select (TUI), **P** bare-filename per-occurrence decision
+**Lessons**: read returns bytes / write took str — normalized at adapter boundary; store.save mirror-drop must skip SKILL.md; token regex must not absorb trailing `.` (prose "data/b.txt.")
 
 ## [2026-09-29] — Session 8: drift detection (backlog A + K)
 **Task**: Audit vs draft; build A (manifest blobs) + K (status states)
