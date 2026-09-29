@@ -50,3 +50,16 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 **Lessons**:
 - Config file = `config.json` in the store dir (spec left filename open); explicit `--config` overrides
 - Onboarding prompt flow (target fill-in) deferred to Phase 7 with the TUI; Phase 0 auto-generates defaults
+
+## [2026-09-29] — Session 3
+**Task**: Restructure to bare-minimum layout + commit format change
+**Changes**:
+- Flat layout: `src/**` modules (no nested package), root-level `__init__.py`, generated `config.json` at project root
+- `pyproject.toml` — entry point `src.__main__:main`, packages find `src*`
+- `src/__main__.py` — version from importlib.metadata (no cross-package import)
+- `src/config.py` — default config path = project root (was store dir; spec updated)
+- `AGENTS.md` — conventional commit format (`feat:/fix:/chore:/docs:/refactor:`); install via `venv/bin/pip` directly (not `uv pip`)
+- `.gitignore` — fixed (venv/, *.egg-info/, __pycache__/, config.json — config holds the API key)
+**Lessons**:
+- Appending to .gitignore without a trailing newline corrupts the previous line — check after manual user edits
+- `config.json` gitignored: generated artifact + secret; fresh clone auto-generates it
