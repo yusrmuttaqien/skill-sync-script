@@ -111,7 +111,13 @@ Status legend: ⬜ not started · 🔨 in progress · ✅ done
 - Template example refs must not look like real paths (`scripts/<file>.sh`) or the ref scan flags the template itself
 
 ## [2026-09-29] — Session 7
-**Task**: Live-target verification — fix OWUI + Obsidian scanning
+**Task**: Live-target verification + TUI restyle (visref-canvas-builder reference)
+**Changes (TUI)**:
+- `src/tui.py` — rewritten page-based: status table + arrow-key `select_menu` (ported from visref: `▸` cursor, dim details, hint line, Esc back, non-TTY fallback), actions as menu steps (import/export/adopt/rename/delete/create/scan)
+**Lessons (TUI)**:
+- Page-based flow (render → select_menu → action → back) reads far better than a bare key-prompt loop
+
+**Task (orig)**: Live-target verification — fix OWUI + Obsidian scanning
 **Changes**:
 - `src/openwebui.py` — rewritten to the real API (spec was right, code had drifted): `/api/v1/skills/...` routes, client-provided `id` (required in SkillForm), POST update (not PUT), no `files` field (content-only skills)
 - `src/filesystem.py` — `layout` param: `dir` (pi) vs `flat` (obsidian: one `<name>.md` per skill, no companions)
