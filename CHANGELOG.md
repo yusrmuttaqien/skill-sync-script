@@ -36,35 +36,37 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
 **A. ✅ Manifest last-synced hash + blob** — per skill × target: hash+blob of SKILL.md
    and each companion (= merge base). Powers drift detection, status states,
    repoint detection. (manifest.py, sync.py, status.py)
-**B. Diff preview before apply** — the v1 guard (no in-TUI undo). Import/export/
-   adopt show the would-be replacement diff and require confirm.
-**C. Exact-mirror companion set on import** — new store set = (source companions)
+**B. ✅ Diff preview before apply** — the v1 guard (no in-TUI undo). Import/export/
+   adopt show the would-be replacement diff and require confirm. (`f628525`)
+**C. ✅ Exact-mirror companion set on import** — new store set = (source companions)
    ∪ (store companions still referenced by imported SKILL.md); unreferenced
-   removed + listed in the diff. store.save must also drop stale files.
-**D. Link rewrite engine** — export: relative refs → absolute store paths (pi,
+   removed + listed in the diff. store.save must also drop stale files. (`20dbb72`)
+**D. ✅ Link rewrite engine** — export: relative refs → absolute store paths (pi,
    Obsidian); import: abs → rel (the streamlining). Longest-first,
    token-boundary, skip URL/qualified contexts. Companions stay single-copy in
-   the store; pi/Obsidian refs point at it (stop copying companions there).
+   the store; pi/Obsidian refs point at it (stop copying companions there). (`4433687`)
 **E. OWUI flatten** — small companions in `<!-- file:<relpath> -->…<!-- /file -->`
    markers (base64 for binary; large → link + guide text via `hostname` /
    `open_terminal` templates), markers at end of md, re-parsed on import
    (lossless), markers structural-not-text (stripped before compare; missing
-   markers + identical text → auto-restore companions).
-**F. Adopt write-back** — adopt = import + write normalized version back to the
-   target (store becomes single physical copy). Currently flag-only.
+   markers + identical text → auto-restore companions). (`cbc79bc`, `fe558c0`)
+**F. ✅ Adopt write-back** — adopt = import + write normalized version back to the
+   target (store becomes single physical copy). Currently flag-only. (`cd7bf1e`)
 
 **G. Obsidian wrapper pass-through** — preserve existing wrapper frontmatter
    (`status: fix`, extra fields) on export; only replace fenced content.
-   Currently regenerated from config tags (loses `status`).
+   Currently regenerated from config tags (loses `status`). (`543b169`)
 **H. OWUI put semantics** — id new/changed (rename) → recreate (POST /create +
    DELETE /old); duplicate normalized names in target → flag both, disambiguate
    by id, user picks (list_skills keeps last today); `is_active` in scan.
-**I. pi scan details** — folders without SKILL.md flagged as unimportable
-   candidates; unmanaged originals indexed with `+`.
-**J. Obsidian validity rule** — skill iff last top-level fence starts with
-   frontmatter (today: any `*.md`).
-**K. ✅ (partial) Status states** — `+ to-add / ~ changed / ! offline / ! error` live;
-   `~ paths-stale` needs D, `~ orphan` needs the scan wiring (R).
+   (`fe558c0`)
+**I. ✅ pi scan details** — folders without SKILL.md flagged as unimportable
+   candidates; unmanaged originals indexed with `+`. (`ba968b4`)
+**J. ✅ Obsidian validity rule** — skill iff last top-level fence starts with
+   frontmatter (today: any `*.md`). (`ba968b4`)
+**K. ✅ Status states** — `+ to-add / ~ changed / ! offline / ! error` live;
+   `~ paths-stale` live via D; `~ orphan` via the scan wiring (R). Text states
+   + legend in the table (`ff387c9`, `52d34b9`).
 
 **L. ✅ Repoint action** — `p` in TUI: rel→abs rewrite to current store path; status `~ paths-stale` (text differs only in store prefix).
 **M. ✅ Batch in TUI** — `b`: Batch Import/Export; multi-select (space toggle,
@@ -72,8 +74,8 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
    "adopt first"); one confirm with count.
 **N. ✅ Store browser** — `v` in TUI: pick skill → pick file → view.
 **O. ✅ Nameless import prompt** — inline "set it" prompt; store name follows the override.
-**P. ⏸ Bare-filename candidates** — per-occurrence decision (list + context +
-   checkbox). Today warn-only (companion_ref_scan). Deferred.
+**P. ✅ Bare-filename candidates** — per-occurrence decision (list + context +
+   create/rewrite/ignore menu) in scan + post-edit. (`c1e6b35`)
 **Q. ✅ Onboarding** — first run: panel + $EDITOR on the generated config, then reload.
 **R. ✅ Minor** — symlink-flattened warning in post_edit; `! offline`/`! error`
    cells; duplicate names flagged in scan. (duplicate_names check itself stays
@@ -95,7 +97,11 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
 - **I+J** unimportable folders flagged; obsidian skill = last top-level fence starts with frontmatter
 - **L** repoint action + `~ paths-stale` state (store moved)
 - **N** store browser (`v`); **O** nameless import prompt; **Q** first-run onboarding; **R** symlink warning, dup names in scan
-- Deferred: **M** batch multi-select (TUI), **P** bare-filename per-occurrence decision
+- **K** status table: text states (colored) + legend (`ff387c9`); `to-add` → `exportable` label (`52d34b9`)
+- **Esc** cancels at every flow step — escapable `ask_text`/`ask_confirm` (raw Esc, piped fallback), delete confirms before acting (`be94546`)
+- **M** batch import/export — multi-select (space toggle), managed-only sources (`83c20d8`)
+- **P** ref candidates — per-occurrence create/rewrite/ignore in scan + post-edit (`c1e6b35`)
+- **All A–R items complete.**
 **Lessons**: read returns bytes / write took str — normalized at adapter boundary; store.save mirror-drop must skip SKILL.md; token regex must not absorb trailing `.` (prose "data/b.txt.")
 
 ## [2026-09-29] — Session 8: drift detection (backlog A + K)
