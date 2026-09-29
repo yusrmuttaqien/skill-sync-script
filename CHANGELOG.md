@@ -82,12 +82,12 @@ A → B → C → D → E → F, then G–K (target fixes), then L–T (TUI/poli
    store-level; target dups surfaced via list_skills_full in scan.)
 
 **Second audit (2026-09-29, post A–R):**
-**S. ⏸ Target-copy-only delete** — draft defines two deletes: target copy (that
-target only) AND store identity (copies become `+` unmanaged). Today: store
-delete + optional cascade to targets. No target-copy-only delete.
-**T. ⏸ Import vs Adopt visibility** — draft: make the difference explicit at the
-point of choice ("target's copy is NOT touched" vs "take over the target's
-copy"). Menu descriptions are terse.
+**S. ✅ Target-copy-only delete** — `d` → "Delete from target": pick skill →
+pick target (synced copies only) → confirm → adapter delete. Store + other
+targets untouched (cell → `exportable`).
+**T. ✅ Import vs Adopt visibility** — menu descriptions: Import "target →
+store · target copy untouched"; Adopt "import + take over target copy
+(write-back)".
 
 ## Log
 
@@ -110,6 +110,8 @@ copy"). Menu descriptions are terse.
 - **M** batch import/export — multi-select (space toggle), managed-only sources (`83c20d8`)
 - **P** ref candidates — per-occurrence create/rewrite/ignore in scan + post-edit (`c1e6b35`)
 - **All A–R items complete.**
+- **S** target-copy-only delete (`d` → "Delete from target"); **T** Import/Adopt menu descriptions explicit
+- **README** — user-facing overview (`a95070d`); second audit: module list + phase notes fixed (`10a8cb0`)
 **Lessons**: read returns bytes / write took str — normalized at adapter boundary; store.save mirror-drop must skip SKILL.md; token regex must not absorb trailing `.` (prose "data/b.txt.")
 
 ## [2026-09-29] — Session 8: drift detection (backlog A + K)

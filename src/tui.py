@@ -584,7 +584,39 @@ def _action_rename(store, man, man_path) -> None:
     M.save(man_path, man)
 
 
+def _delete_from_target(store, adapters, man) -> None:
+    """S: target-copy-only delete — store + other targets untouched."""
+    names = store.list_skills()
+    name = _pick_skill(names)
+    if name is None:
+        return
+    tids = [tid for tid in adapters if M.target_id(man, name, tid)]
+    if not tids:
+        console.print("[dim]no target copies (nothing synced)[/dim]")
+        return
+    tid = select_menu([(t, t, "") for t in tids])
+    if tid is None:
+        return
+    ok = ask_confirm(f"Delete {name} from {tid}? (store + other targets untouched)")
+    if ok is None:
+        console.print("[dim]cancelled[/dim]")
+        return
+    if not ok:
+        return
+    adapters[tid].delete_skill(M.target_id(man, name, tid) or name)
+    console.print(f"[green]deleted {name} from {tid}[/green]")
+
+
 def _action_delete(store, adapters, man, man_path) -> None:
+    kind = select_menu([
+        ("s", "Delete from store", "store identity; target copies become unmanaged"),
+        ("t", "Delete from target", "that target's copy only (store untouched)"),
+    ])
+    if kind is None:
+        return
+    if kind == "t":
+        _delete_from_target(store, adapters, man)
+        return
     names = store.list_skills()
     name = _pick_skill(names)
     if name is None:
@@ -787,9 +819,9 @@ def run(config_path: str | None = None) -> None:
         console.clear()
         render_status_table(store, adapters, man)
         choice = select_menu([
-            ("i", "Import", "target \u2192 store"),
+            ("i", "Import", "target \u2192 store \u00b7 target copy untouched"),
             ("e", "Export", "store \u2192 target"),
-            ("a", "Adopt", "import + mark adopted"),
+            ("a", "Adopt", "import + take over target copy (write-back)"),
             ("b", "Batch", "import/export a set at once"),
             ("r", "Rename", "store skill"),
             ("p", "Repoint", "fix stale absolute store paths"),

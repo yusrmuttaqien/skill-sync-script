@@ -72,13 +72,13 @@ Menu (arrow keys / keys, **Esc cancels every step**):
 
 | Key | Action |
 |---|---|
-| `i` | **Import** — target → store (diff preview, check-gated) |
+| `i` | **Import** — target → store (target copy untouched; diff preview, check-gated) |
 | `e` | **Export** — store → target |
-| `a` | **Adopt** — import + write normalized version back to target |
+| `a` | **Adopt** — import + take over the target copy (normalized write-back) |
 | `b` | **Batch** — import/export a multi-selected set (managed-only sources) |
 | `r` | **Rename** — store skill (cross-skill mentions updated) |
 | `p` | **Repoint** — fix stale absolute store paths |
-| `d` | **Delete** — from store (asks about synced targets first) |
+| `d` | **Delete** — from store (asks about synced targets first) or from a single target (copy only) |
 | `c` | **Create** — new skill (template + `$EDITOR`) |
 | `s` | **Scan** — run the checks suite on the store |
 | `v` | **View** — store browser (skill → file) |

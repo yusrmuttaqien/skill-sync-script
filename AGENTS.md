@@ -22,7 +22,7 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 - `CHANGELOG.md` — progress log + phase tracker, human + model editable;
   **the `Backlog — gaps vs draft` section is the work queue** (items A–R,
   build order A→B→C→D→E→F then G–K, L–T; check items off as they land).
-  **Status: A–R complete (session 9); S–T open (second audit).**
+  **Status: all items complete (A–T, second audit 2026-09-29).**
 - `AGENTS.md` — this file
 - `README.md` — user-facing overview (run, config, TUI keys)
 - `skills-sync-project.md` — spec (edit only when a behavior decision changes)
