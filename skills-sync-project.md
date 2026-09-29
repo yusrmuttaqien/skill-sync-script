@@ -46,11 +46,13 @@ Targets:
   the **complete bundle** (SKILL.md included), in canonical form
 - **File modes are preserved** on every companion copy (store in/out) — exec
   bits on scripts must survive
+- **Symlinks in source folders are resolved to regular files** on copy into
+  the store; warned when a link is flattened
 - **Companion enumeration ignores** the config `ignore` patterns (default:
   dotfiles `.*`) — no `.DS_Store` or hidden files become companions
 - **Store edits are validated on editor close** (parseable frontmatter,
-  `name` present + legal charset); invalid → "fix now / keep as-is" prompt,
-  same as import
+  `name` + `description` present, legal charset); invalid → "fix now / keep
+  as-is" prompt, same as import
 - Single physical copy of every companion file lives here; all targets
   reference it (the TUI is the streamliner)
 
@@ -181,6 +183,13 @@ Adapter:
   `Authorization: Bearer`. No JWT minting.
 - **Rigid**: what the API lists *is* the skill inventory — no stray-entry
   problem
+- **put() semantics**: update if the name matches an existing skill; name
+  new/changed (rename flow) → **recreate** (delete + create) — OWUI ids are
+  derived from the name at creation, so identity is server-side state
+  (to be verified against the real API; key/permission setup pending)
+- **Duplicate normalized names within the target** → both flagged,
+  disambiguated by OWUI id; user picks which one is "the" skill (or renames
+  one)
 - All current OWUI skills are single-file (no inlined-companion migration needed)
 - **Markers/guide sections are structural, not text**: stripped before
   comparison, so deleting a guide section is not a content change. Edit
@@ -356,9 +365,9 @@ detection is **normalize-then-exact-compare**, not fuzzy similarity: the
 inter-target differences are exactly the known transforms (Obsidian wrapper,
 abs-vs-rel refs, OWUI flatten), so normalizing a target copy into canonical
 form cancels them — identical content compares byte-equal, and only real
-edits show as a diff. **Line endings are normalized (LF) and trailing
-newlines trimmed before compare and before write** — only visible text
-changes count. The TUI compares each target's normalized copy against
+edits show as a diff. **Line endings are normalized (LF), trailing newlines and BOM trimmed,
+and leading `./` stripped from refs — before compare and before write** —
+only visible text changes count. The TUI compares each target's normalized copy against
 the store:
 
 - skill not in store → `+` unmanaged — born unnormalized; Import/Adopt are
@@ -385,9 +394,12 @@ and wired to its triggers.**
 | Check | Post-edit (store) | Import | Scan | Rename / store-delete |
 |---|---|---|---|---|
 | Frontmatter valid (parseable, `name` present, legal charset) | ✓ | ✓ | — | — |
+| Description present (empty → prompt, same as nameless) | ✓ (incl. create) | ✓ | — | — |
 | Companion ref scan (broken ref / orphan / bare-filename candidates) | ✓ | ✓ | ✓ | — |
-| Line-ending normalization (LF, trailing newline) | ✓ | ✓ | ✓ | — |
+| Normalization (LF, BOM, trailing newline, `./`-strip) | ✓ | ✓ | ✓ | — |
+| Duplicate normalized names within target (OWUI: disambiguate by id, user picks) | — | — | ✓ | — |
 | Cross-skill name mentions (old name referenced by other skills → warn "X is referenced in Y, Z") | ✓ | — | — | ✓ |
+| Store integrity (dir name == frontmatter `name`; mismatch → "rename dir to match?") | ✓ (incl. create) | ✓ | ✓ | — |
 
 Post-edit (editor close in the store browser) runs the full store-level
 suite — it is the convergence point for most checks in the script.
