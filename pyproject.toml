@@ -8,11 +8,11 @@ dependencies = [
 ]
 
 [project.scripts]
-skillsync = "skillsync.__main__:main"
+skillsync = "src.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["skillsync*"]
+include = ["src*"]

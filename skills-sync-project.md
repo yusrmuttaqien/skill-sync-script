@@ -304,7 +304,8 @@ physical companion copies = future drift.
 ## Config
 
 Single centralized config file. Location: `--config <path>` flag; default =
-the **store's directory**. **Auto-generated with all defaults** if no config
+the **project root** (repo root, alongside `src/`) — keeps the store dir
+free of tooling files. **Auto-generated with all defaults** if no config
 file is found at that location. `--generate-config` emits all keys with
 defaults + descriptions.
 

@@ -8,8 +8,14 @@ from __future__ import annotations
 
 import argparse
 
-from skillsync import __version__
-from skillsync.config import generate_config_text, load_config
+from importlib.metadata import PackageNotFoundError, version
+
+from src.config import generate_config_text, load_config
+
+try:
+    __version__ = version("skillsync")
+except PackageNotFoundError:  # running from a checkout without install
+    __version__ = "0.0.0+local"
 
 
 def build_parser() -> argparse.ArgumentParser:

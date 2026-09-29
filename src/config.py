@@ -14,6 +14,9 @@ from typing import Any
 
 CONFIG_FILENAME = "config.json"
 
+# Default config location: the project root (the directory containing src/).
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 DEFAULTS: dict[str, Any] = {
     "store": {"path": "~/Documents/skill-sync/store"},
     "targets": {
@@ -69,10 +72,10 @@ def default_config() -> dict[str, Any]:
 
 
 def resolve_config_path(flag_path: str | Path | None) -> Path:
-    """Config location: explicit flag, else <default store dir>/config.json."""
+    """Config location: explicit flag, else <project root>/config.json."""
     if flag_path:
         return Path(flag_path).expanduser()
-    return Path(DEFAULTS["store"]["path"]).expanduser() / CONFIG_FILENAME
+    return PROJECT_ROOT / CONFIG_FILENAME
 
 
 def load_config(flag_path: str | Path | None = None) -> tuple[dict[str, Any], Path]:

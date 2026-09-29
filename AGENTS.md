@@ -34,7 +34,9 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 
 ## Environment & Dependencies
 
-- Venv: `venv/` (uv-managed, Python 3.12) — `venv/bin/python`, `uv pip install …`
+- Venv: `venv/` (Python 3.12) — `venv/bin/python`; **install with
+  `venv/bin/pip` directly** (not `uv pip`) to avoid permission prompts
+  (`venv/bin/pip install -e .`)
 - `requirements.txt` is the dependency record: **regenerate it in the same
   commit that changes dependencies** (`uv pip freeze --python venv/bin/python | grep -v "^-e " > requirements.txt`)
 
@@ -42,9 +44,9 @@ directions. Full spec: `skills-sync-project.md` (behavior source of truth).
 
 - **Commit at worthy checkpoints and at every phase boundary** — each
   commit = a restorable state, paired with its CHANGELOG entry
-- **Uniform format**: `P<N>: <task>` (phase number + the CHANGELOG entry's
-  Task line). Pre-phase work (docs/setup) = `P0: …`. 1:1 mapping, so
-  `git log` and the changelog tell the same story
+- **Conventional format**: `feat: …` · `fix: …` · `chore: …` ·
+  `docs: …` · `refactor: …` — imperative, one line; the CHANGELOG entry
+  carries the detail (1:1 mapping, `git log` + changelog tell the same story)
 - No commit for trivial in-progress state; a checkpoint is worthy when the
   last logged step is complete and verified
 
