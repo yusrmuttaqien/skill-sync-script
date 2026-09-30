@@ -81,7 +81,7 @@ Menu (arrow keys / keys, **Esc cancels every step**):
 | `d` | **Delete** — from store (asks about synced targets first) or from a single target (copy only) |
 | `c` | **Create** — new skill (template + `$EDITOR`) |
 | `s` | **Scan** — run the checks suite on the store |
-| `v` | **View** — store browser (skill → file) |
+| `v` | **View** — store browser (skill → file, edit SKILL.md) |
 | `q` | Quit |
 
 After editing, a **post-edit check loop** runs the canonical suite
