@@ -51,10 +51,12 @@ class RefCandidate:
     count: int  # occurrences
 
 
-def ref_candidates(text: str, companions: dict) -> list["RefCandidate"]:
-    """Extract per-occurrence ref candidates from SKILL.md text."""
+def ref_candidates(text: str, companions: dict, ignored: list[str] = ()) -> list["RefCandidate"]:
+    """Extract per-occurrence ref candidates from SKILL.md text.
+    `ignored` = tokens the user already decided to ignore (persisted)."""
     out: list[RefCandidate] = []
     lines = text.split("\n")
+    ignored = set(ignored)
 
     def _context(token: str) -> str:
         for line in lines:
@@ -64,14 +66,14 @@ def ref_candidates(text: str, companions: dict) -> list["RefCandidate"]:
 
     # broken: path-looking tokens with no matching companion
     for token in re.findall(r"(?<![\w./-])((?:[\w.-]+/)+[\w.-]+)", text):
-        if token not in companions:
+        if token not in companions and token not in ignored:
             out.append(RefCandidate(token, token, "broken", _context(token), text.count(token)))
     # bare: companion basename used without its dir part
     for relpath in companions:
         if "/" not in relpath:
             continue
         basename = relpath.rsplit("/", 1)[-1]
-        if re.search(rf"(?<![\w/]){re.escape(basename)}(?![\w])", text):
+        if basename not in ignored and re.search(rf"(?<![\w/]){re.escape(basename)}(?![\w])", text):
             out.append(RefCandidate(basename, relpath, "bare", _context(basename), len(re.findall(rf"(?<![\w/]){re.escape(basename)}(?![\w])", text))))
     return out
 

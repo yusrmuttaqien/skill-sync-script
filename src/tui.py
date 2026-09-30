@@ -347,18 +347,24 @@ def launch_editor(path: Path) -> None:
     subprocess.run(_editor() + [str(path)])
 
 
-def _resolve_refs(store: Store, name: str) -> None:
-    """P: per-occurrence ref decisions — create / rewrite / ignore."""
+def _resolve_refs(store: Store, name: str, man: dict | None = None,
+                  man_path=None) -> None:
+    """P: per-occurrence ref decisions — create / rewrite / ignore.
+    Ignores persist in the manifest (`ignored_refs`) for that skill."""
     import re as _re
 
     from .checks import ref_candidates
     from .normalize import normalize_text
 
+    ignored = []
+    if man is not None:
+        ignored = man["skills"].get(name, {}).get("ignored_refs", [])
+
     d = store.skill_dir(name)
     path = d / "SKILL.md"
     text = path.read_text(encoding="utf-8")
     bundle = store.load(name)
-    cands = ref_candidates(text, bundle.companions if bundle else {})
+    cands = ref_candidates(text, bundle.companions if bundle else {}, ignored)
     if not cands:
         return
     console.print(Panel("[bold]ref candidates[/bold] — decide per occurrence",
@@ -386,12 +392,20 @@ def _resolve_refs(store: Store, name: str) -> None:
             text = _re.sub(rf"(?<![\w./-]){_re.escape(c.token)}(?![\w])", c.hint, text)
             changed = True
             console.print(f"  [green]rewrote {c.token} \u2192 {c.hint}[/green]")
-        # None (Esc) or "i" → ignore
+        else:
+            # None (Esc) or "i" → ignore, remembered for this skill
+            if man is not None and man_path is not None and c.token not in ignored:
+                entry = M.skill_entry(man, name)
+                entry.setdefault("ignored_refs", []).append(c.token)
+                ignored.append(c.token)
+                M.save(man_path, man)
+                console.print(f"  [dim]ignoring {c.token} (remembered)[/dim]")
     if changed:
         path.write_text(normalize_text(text), encoding="utf-8")
 
 
-def prompt_edit_until_clean(store: Store, name: str) -> None:
+def prompt_edit_until_clean(store: Store, name: str, man: dict | None = None,
+                            man_path=None) -> None:
     """After $EDITOR closes: run post-edit checks; loop until clean or kept."""
     while True:
         issues = store.post_edit(name)
@@ -401,7 +415,7 @@ def prompt_edit_until_clean(store: Store, name: str) -> None:
             style = "red" if i.severity == "error" else "yellow"
             console.print(f" [{style}]{i.check}[/{style}] {i.message}")
         if any(i.check == "companion_ref_scan" for i in issues):
-            _resolve_refs(store, name)
+            _resolve_refs(store, name, man, man_path)
             continue  # re-check after the ref decisions
         keep = ask_confirm("Keep as-is (issues noted)?")
         if keep is None or keep:
@@ -641,7 +655,7 @@ def _action_delete(store, adapters, man, man_path) -> None:
     M.save(man_path, man)
 
 
-def _action_create(store) -> None:
+def _action_create(store, man=None, man_path=None) -> None:
     from rich.prompt import Prompt
 
     name = ask_text("name")
@@ -650,17 +664,17 @@ def _action_create(store) -> None:
     name = normalize_name(name)
     path = store.create(name)
     launch_editor(path)
-    prompt_edit_until_clean(store, name)
+    prompt_edit_until_clean(store, name, man, man_path)
 
 
-def _action_scan(store, adapters) -> None:
+def _action_scan(store, adapters, man=None, man_path=None) -> None:
     for name in store.list_skills():
         issues = store.post_edit(name)
         if issues:
             console.print(f"[yellow]{name}[/yellow]")
             _print_issues(issues)
             if any(i.check == "companion_ref_scan" for i in issues):
-                _resolve_refs(store, name)
+                _resolve_refs(store, name, man, man_path)
     for tid, adapter in adapters.items():
         unimp = adapter.list_unimportable()
         if unimp:
@@ -880,9 +894,9 @@ def run(config_path: str | None = None) -> None:
             elif choice == "d":
                 _action_delete(store, adapters, man, man_path)
             elif choice == "c":
-                _action_create(store)
+                _action_create(store, man, man_path)
             elif choice == "s":
-                _action_scan(store, adapters)
+                _action_scan(store, adapters, man, man_path)
             elif choice == "p":
                 _action_repoint(store, adapters, man)
             elif choice == "b":
