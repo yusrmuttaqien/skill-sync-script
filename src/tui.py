@@ -831,10 +831,12 @@ def _action_view(store) -> None:
         return
     d = store.skill_dir(name)
     files = sorted(p.relative_to(d).as_posix() for p in d.rglob("*") if p.is_file())
-    console.print(f"[dim]{', '.join(files)}[/dim]")
-    f = ask_text("file")
-    if f is None or f not in files:
-        return
+    if len(files) == 1:
+        f = files[0]  # nothing to choose
+    else:
+        f = select_menu([(f, f, "") for f in files])
+        if f is None:
+            return
     console.print(Panel((d / f).read_text(encoding="utf-8", errors="replace"), title=f))
 
 
