@@ -374,12 +374,22 @@ def _resolve_refs(store: Store, name: str, man: dict | None = None,
             f"  {i + 1}. [{c.kind}] [bold]{c.token}[/bold] \u2192 {c.hint}  "
             f"[dim]\u00d7{c.count} \u00b7 {c.context}[/dim]"
         )
+    def _ignore(token: str) -> None:
+        nonlocal ignored
+        if man is not None and man_path is not None and token not in ignored:
+            entry = M.skill_entry(man, name)
+            entry.setdefault("ignored_refs", []).append(token)
+            ignored.append(token)
+            M.save(man_path, man)
+            console.print(f"  [dim]ignoring {token} (remembered)[/dim]")
+
     changed = False
     for i, c in enumerate(cands):
         choice = select_menu([
             ("c", f"{i + 1}. create {c.hint}", "empty file"),
             ("r", f"{i + 1}. rewrite \u2192 {c.hint}", f"replace {c.count} occurrence(s)"),
             ("i", f"{i + 1}. ignore", ""),
+            ("a", f"ignore ALL {len(cands)} in this file", "remember all, on to the next skill"),
         ])
         if choice == "c":
             p = d / c.hint
@@ -392,14 +402,13 @@ def _resolve_refs(store: Store, name: str, man: dict | None = None,
             text = _re.sub(rf"(?<![\w./-]){_re.escape(c.token)}(?![\w])", c.hint, text)
             changed = True
             console.print(f"  [green]rewrote {c.token} \u2192 {c.hint}[/green]")
+        elif choice == "a":
+            for c2 in cands:
+                _ignore(c2.token)
+            break
         else:
             # None (Esc) or "i" → ignore, remembered for this skill
-            if man is not None and man_path is not None and c.token not in ignored:
-                entry = M.skill_entry(man, name)
-                entry.setdefault("ignored_refs", []).append(c.token)
-                ignored.append(c.token)
-                M.save(man_path, man)
-                console.print(f"  [dim]ignoring {c.token} (remembered)[/dim]")
+            _ignore(c.token)
     if changed:
         path.write_text(normalize_text(text), encoding="utf-8")
 
