@@ -838,6 +838,7 @@ def _action_view(store) -> None:
         if f is None:
             return
     console.print(Panel((d / f).read_text(encoding="utf-8", errors="replace"), title=f))
+    ask_confirm("Back to menu?")  # pause so the content is readable
 
 
 # --- main loop -----------------------------------------------------------------
