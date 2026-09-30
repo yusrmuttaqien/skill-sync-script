@@ -821,8 +821,8 @@ def _action_batch(store, adapters, man, man_path) -> None:
     M.save(man_path, man)
 
 
-def _action_view(store) -> None:
-    """N: store browser — view any file."""
+def _action_view(store, man=None, man_path=None) -> None:
+    """N: store browser — view any file, edit SKILL.md via $EDITOR."""
     from rich.prompt import Prompt
 
     names = store.list_skills()
@@ -838,7 +838,9 @@ def _action_view(store) -> None:
         if f is None:
             return
     console.print(Panel((d / f).read_text(encoding="utf-8", errors="replace"), title=f))
-    ask_confirm("Back to menu?")  # pause so the content is readable
+    if ask_confirm("Edit SKILL.md? ($EDITOR)"):
+        launch_editor(d / "SKILL.md")
+        prompt_edit_until_clean(store, name, man, man_path)
 
 
 # --- main loop -----------------------------------------------------------------
@@ -914,6 +916,6 @@ def run(config_path: str | None = None) -> None:
             elif choice == "b":
                 _action_batch(store, adapters, man, man_path)
             elif choice == "v":
-                _action_view(store)
+                _action_view(store, man, man_path)
         except KeyboardInterrupt:
             console.print("[yellow]Interrupted.[/yellow]")
