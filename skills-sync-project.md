@@ -354,10 +354,10 @@ merge base, repoint detection.
 6. **Delete** — target copy (that target only) / store identity (target copies become `+` unmanaged)
 7. **Store browser** — list skills, view files, edit SKILL.md via `$EDITOR`. **Create new skill = in the store**: prompt name → TUI writes the template SKILL.md to the store (minimal frontmatter `name`/`description` + body skeleton reminding the relative-ref convention) **before launching the editor** → post-edit checks run on close. Targets never create directly — normal export pushes it out
 8. **Config** — generate + edit
-9. **Batch** — apply Import/Export to a selected set of skills at once.
-   Source eligibility: **managed (synced) skills only** — unmanaged skills
-   aren't sources yet (they need Adopt first, which is inherently per-skill
-   because of the write-back)
+9. **Batch** — run any of Import / Adopt / Export on a selected set of
+   skills at once. **Batch = N × the single operation**: same eligibility
+   and effects per skill (batch import accepts unmanaged skills, same as
+   single import). One confirm for the set, per-skill issue summary.
 
 The TUI must make the **Import vs Adopt** difference visible at the point of
 choice (action descriptions / help text):

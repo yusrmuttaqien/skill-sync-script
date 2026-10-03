@@ -91,6 +91,25 @@ store · target copy untouched"; Adopt "import + take over target copy
 
 ## Log
 
+## [2026-09-30] — Session 11: remembers, batch modes, browser edit
+**Task**: ref-ignore persistence, batch ignore, store browser edit, batch 3 modes
+**Changes**:
+- src/tui.py + src/checks.py — ignores persist per skill (`sync.json` →
+  `skills.<name>.ignored_refs`); batch `ignore ALL N in this file`
+- src/tui.py — store browser: file menu, single-file auto-view, pause after
+  view, **edit SKILL.md via $EDITOR** + post-edit loop
+- src/tui.py — **batch = 3 modes** (Import / Adopt / Export), no managed-only
+  rule: batch import accepts unmanaged skills, same as single import;
+  batch adopt = N × adopt. Spec TUI scope item 9 updated
+- src/tui.py — messages survive `console.clear()`: pause after batch
+  outcomes (cancel / unmanaged / summary)
+- README.md — TUI keys (v = view + edit)
+**Lessons**: the running TUI lived in a second checkout
+(`~/Documents/local-ai/skill-management/skill-sync-script`); sync it by
+path-fetch after each commit, and the user must restart the TUI to pick up
+new code. `console.clear()` in the main loop wipes action output — any
+result message needs a pause (ask_confirm) to be readable.
+
 ## [2026-09-29] — Session 10: store move support
 **Task**: How to move the store location
 **Changes**:
