@@ -766,42 +766,38 @@ def _action_repoint(store, adapters, man) -> None:
 
 def _action_batch(store, adapters, man, man_path) -> None:
     kind = select_menu([
-        ("i", "Batch Import", "target \u2192 store"),
+        ("i", "Batch Import", "target \u2192 store \u00b7 target copy untouched"),
+        ("a", "Batch Adopt", "import + take over target copy (write-back)"),
         ("e", "Batch Export", "store \u2192 target"),
     ])
     if kind is None:
         return
-    if kind == "i":
+    if kind in ("i", "a"):
         tid = select_menu([(t, t, "") for t in adapters])
         if tid is None:
             return
         adapter = adapters[tid]
         full = adapter.list_skills_full()
-        managed = {
-            n for n, e in man["skills"].items()
-            if tid in e.get("targets", {})
-        }
-        items = [
-            (s["id"], s["name"],
-             "" if s["name"] in managed else "[dim]unmanaged \u2014 adopt first[/dim]")
-            for s in full
-        ]
+        items = [(s["id"], s["name"], "") for s in full]
         chosen = select_multi(items)
         if not chosen:
             console.print("[dim]nothing selected — batch cancelled (space toggles, Enter confirms)[/dim]")
             ask_confirm("Back to menu?")
             return
-        names = [s["name"] for s in full if s["id"] in chosen and s["name"] in managed]
-        skipped = len(chosen) - len(names)
+        names = [s["name"] for s in full if s["id"] in chosen]
         if not names:
-            console.print("[yellow]no managed skills selected (unmanaged need Adopt first)[/yellow]")
+            console.print("[yellow]no skills selected[/yellow]")
             ask_confirm("Back to menu?")
             return
-        note = f" ({skipped} unmanaged skipped)" if skipped else ""
-        if not ask_confirm(f"Import {len(names)} skill(s) from {tid}?{note}"):
+        verb = "Import" if kind == "i" else "Adopt"
+        if not ask_confirm(f"{verb} {len(names)} skill(s) from {tid}?"):
             return
         for name in names:
-            issues = import_skill(store, adapter, man, name)
+            issues = (
+                adopt(store, adapter, man, name)
+                if kind == "a"
+                else import_skill(store, adapter, man, name)
+            )
             if issues:
                 console.print(f"[dim]{name}[/dim]")
                 _print_issues(issues)
