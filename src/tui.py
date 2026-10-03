@@ -788,6 +788,7 @@ def _action_batch(store, adapters, man, man_path) -> None:
         ]
         chosen = select_multi(items)
         if not chosen:
+            console.print("[dim]nothing selected — batch cancelled (space toggles, Enter confirms)[/dim]")
             return
         names = [s["name"] for s in full if s["id"] in chosen and s["name"] in managed]
         skipped = len(chosen) - len(names)
@@ -806,6 +807,7 @@ def _action_batch(store, adapters, man, man_path) -> None:
         names_all = store.list_skills()
         chosen = select_multi([(n, n, "") for n in names_all])
         if not chosen:
+            console.print("[dim]nothing selected — batch cancelled (space toggles, Enter confirms)[/dim]")
             return
         tid = select_menu([(t, t, "") for t in adapters])
         if tid is None:
