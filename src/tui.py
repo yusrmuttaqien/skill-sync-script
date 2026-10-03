@@ -789,11 +789,13 @@ def _action_batch(store, adapters, man, man_path) -> None:
         chosen = select_multi(items)
         if not chosen:
             console.print("[dim]nothing selected — batch cancelled (space toggles, Enter confirms)[/dim]")
+            ask_confirm("Back to menu?")
             return
         names = [s["name"] for s in full if s["id"] in chosen and s["name"] in managed]
         skipped = len(chosen) - len(names)
         if not names:
             console.print("[yellow]no managed skills selected (unmanaged need Adopt first)[/yellow]")
+            ask_confirm("Back to menu?")
             return
         note = f" ({skipped} unmanaged skipped)" if skipped else ""
         if not ask_confirm(f"Import {len(names)} skill(s) from {tid}?{note}"):
@@ -803,11 +805,13 @@ def _action_batch(store, adapters, man, man_path) -> None:
             if issues:
                 console.print(f"[dim]{name}[/dim]")
                 _print_issues(issues)
+        ask_confirm("Back to menu?")
     else:
         names_all = store.list_skills()
         chosen = select_multi([(n, n, "") for n in names_all])
         if not chosen:
             console.print("[dim]nothing selected — batch cancelled (space toggles, Enter confirms)[/dim]")
+            ask_confirm("Back to menu?")
             return
         tid = select_menu([(t, t, "") for t in adapters])
         if tid is None:
@@ -820,6 +824,7 @@ def _action_batch(store, adapters, man, man_path) -> None:
             if issues:
                 console.print(f"[dim]{name}[/dim]")
                 _print_issues(issues)
+        ask_confirm("Back to menu?")
     M.save(man_path, man)
 
 
